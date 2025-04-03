@@ -1,8 +1,0 @@
-{
-    "terminal.integrated.env.linux": {
-        "USE_SSH": "true",
-        "GIT_USER": "NoahKlomp",
-        "CURRENT_BRANCH": "main"
-        
-    }
-}
