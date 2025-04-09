@@ -67,7 +67,7 @@ const config: Config = {
     // Replace with your project's social card
     image: 'img/docusaurus-social-card.jpg',
     navbar: {
-      title: 'My Site',
+      title: 'Bijles',
       logo: {
         alt: 'My Site Logo',
         src: 'img/logo.svg',
@@ -77,7 +77,7 @@ const config: Config = {
           type: 'docSidebar',
           sidebarId: 'tutorialSidebar',
           position: 'left',
-          label: 'Tutorial',
+          label: 'Vakken',
         },
         // {to: '/blog', label: 'Blog', position: 'left'},
         // {
@@ -91,12 +91,15 @@ const config: Config = {
       style: 'dark',
       links: [
         {
-          title: 'Docs',
+          title: 'Vakken',
           items: [
             {
-              label: 'Smtn',
-              to: '/docs/intro',
-            },
+              label: 'English',
+              to: '/docs/category/english',
+            },{
+              label: 'Wiskunde',
+              to: '/docs/category/wiskunde',
+            }
           ],
         },
         // {
@@ -130,7 +133,6 @@ const config: Config = {
         //   ],
         // },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} My Project, Inc. Built with Docusaurus.`,
     },
     prism: {
       theme: prismThemes.github,
