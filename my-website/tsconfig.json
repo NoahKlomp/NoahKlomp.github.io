@@ -4,5 +4,5 @@
   "compilerOptions": {
     "baseUrl": "."
   },
-  "exclude": [".docusaurus"]
+  "exclude": [".docusaurus", "node_modules", "build"],
 }
