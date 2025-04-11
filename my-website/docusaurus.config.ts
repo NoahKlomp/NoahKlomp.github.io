@@ -6,7 +6,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'Bijles',
-  tagline: 'van Noah Klomp',
+  tagline: 'Noah Klomp',
   favicon: 'img/favicon.ico',
 
   // Set the production url of your site here
@@ -62,6 +62,18 @@ const config: Config = {
       } satisfies Preset.Options,
     ],
   ],
+  // plugins: [
+  //   [
+  //     '@docusaurus/plugin-content-docs',
+  //     {
+  //       id: 'community',
+  //       path: 'community',
+  //       routeBasePath: 'community',
+  //       sidebarPath: './sidebarsCommunity.js',
+  //       // ... other options
+  //     },
+  //   ],
+  // ],
 
   themeConfig: {
     // Replace with your project's social card
@@ -73,18 +85,30 @@ const config: Config = {
         src: 'img/logo.svg',
       },
       items: [
+        // {
+        //   type: 'docSidebar',
+        //   sidebarId: 'tutorialSidebar',
+        //   position: 'left',
+        //   label: 'Vakken',
+        // },
         {
           type: 'docSidebar',
-          sidebarId: 'tutorialSidebar',
+          sidebarId: 'informaticaSidebar',
           position: 'left',
-          label: 'Vakken',
+          label: 'Informatica',
         },
-        // {to: '/blog', label: 'Blog', position: 'left'},
-        // {
-        //   href: 'https://github.com/facebook/docusaurus',
-        //   label: 'GitHub',
-        //   position: 'right',
-        // },
+        {
+          type: 'docSidebar',
+          sidebarId: 'wiskundeSidebar',
+          position: 'left',
+          label: 'Wiskunde',
+        },
+        {
+          type: 'docSidebar',
+          sidebarId: 'englishSidebar',
+          position: 'left',
+          label: 'English',
+        },
       ],
     },
     footer: {
@@ -96,29 +120,21 @@ const config: Config = {
             {
               label: 'English',
               to: '/docs/category/english',
-            },{
+            }, {
               label: 'Wiskunde',
               to: '/docs/category/wiskunde',
             }
           ],
         },
-        // {
-        //   title: 'Community',
-        //   items: [
-        //     {
-        //       label: 'Stack Overflow',
-        //       href: 'https://stackoverflow.com/questions/tagged/docusaurus',
-        //     },
-        //     {
-        //       label: 'Discord',
-        //       href: 'https://discordapp.com/invite/docusaurus',
-        //     },
-        //     {
-        //       label: 'X',
-        //       href: 'https://x.com/docusaurus',
-        //     },
-        //   ],
-        // },
+        {
+          title: 'Tips en tricks',
+          items: [
+            // {
+            //   label: 'Stack Overflow',
+            //   href: 'https://stackoverflow.com/questions/tagged/docusaurus',
+            // },
+          ],
+        },
         // {
         //   title: 'More',
         //   items: [
