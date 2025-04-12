@@ -94,19 +94,19 @@ const config: Config = {
         {
           type: 'docSidebar',
           sidebarId: 'informaticaSidebar',
-          position: 'left',
+          position: 'right',
           label: 'Informatica',
         },
         {
           type: 'docSidebar',
           sidebarId: 'wiskundeSidebar',
-          position: 'left',
+          position: 'right',
           label: 'Wiskunde',
         },
         {
           type: 'docSidebar',
           sidebarId: 'englishSidebar',
-          position: 'left',
+          position: 'right',
           label: 'English',
         },
       ],

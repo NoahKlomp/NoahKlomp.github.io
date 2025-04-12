@@ -1,0 +1,8 @@
+{
+  "label": "Opdrachten",
+  "position": 4,
+  "link": {
+    "type": "generated-index",
+    "description": "De opdrachten van OOP."
+  }
+}

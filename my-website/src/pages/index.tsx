@@ -5,7 +5,7 @@ import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
 import HomepageFeatures from '@site/src/components/HomepageFeatures';
 import Heading from '@theme/Heading';
-
+import CodeHL from '@site/src/components/CodeHL';
 import styles from './index.module.css';
 
 function HomepageHeader() {
@@ -38,6 +38,13 @@ export default function Home(): ReactNode {
       <HomepageHeader />
       <main>
         <HomepageFeatures />
+        <CodeHL
+          codeString={`
+class Main {
+    public static void main(String[] args) {
+        System.out.println("Hello World!");
+    }
+}`} language="java" />
       </main>
     </Layout>
   );
