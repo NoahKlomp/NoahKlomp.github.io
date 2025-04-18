@@ -38,13 +38,7 @@ export default function Home(): ReactNode {
       <HomepageHeader />
       <main>
         <HomepageFeatures />
-        <CodeHL
-          codeString={`
-class Main {
-    public static void main(String[] args) {
-        System.out.println("Hello World!");
-    }
-}`} language="java" />
+        
       </main>
     </Layout>
   );

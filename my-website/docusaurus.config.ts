@@ -1,11 +1,10 @@
 import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
-
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 const config: Config = {
-  title: 'Bijles',
+  title: 'Mijn Lessen',
   tagline: 'Noah Klomp',
   favicon: 'img/favicon.ico',
 
@@ -19,7 +18,7 @@ const config: Config = {
   // If you aren't using GitHub pages, you don't need these.
   organizationName: 'NoahKlomp', // Usually your GitHub org/user name.
   projectName: 'NoahKlomp.github.io', // Usually your repo name.
-
+  deploymentBranch: "deployment",
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
 
@@ -79,7 +78,7 @@ const config: Config = {
     // Replace with your project's social card
     image: 'img/docusaurus-social-card.jpg',
     navbar: {
-      title: 'Bijles',
+      title: 'Mijn Lessen',
       logo: {
         alt: 'My Site Logo',
         src: 'img/logo.svg',
@@ -119,10 +118,10 @@ const config: Config = {
           items: [
             {
               label: 'English',
-              to: '/docs/category/english',
+              to: '/docs/English',
             }, {
               label: 'Wiskunde',
-              to: '/docs/category/wiskunde',
+              to: '/docs/Wiskunde',
             }
           ],
         },
