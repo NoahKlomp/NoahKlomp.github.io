@@ -13,6 +13,7 @@ header {
     margin-top: 30px;
     background-color: aquamarine;
     align-items: center;
+    border-radius: 10px;
 }
 header > * {
     padding:20px;
@@ -22,9 +23,13 @@ menu > li {
     display: block;
     padding-left: 20px;
 }
-/* body,html {
-    height:100%;
-} */
 .modal-content {
     margin:auto;
+}
+.button {
+    background-color: #f52828;
+    color:rgb(245, 229, 229);
+    padding:10px;
+    border-radius: 10px;
+    text-decoration: none;
 }
