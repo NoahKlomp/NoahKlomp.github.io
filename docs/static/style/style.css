@@ -1,0 +1,30 @@
+* {
+    /* margin:0; */
+    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+}
+header {
+    display: flex;
+    position: sticky;
+    top: 0;
+    height: 100px;
+    max-width: calc(80% - 60px);
+    justify-content: space-between;
+    margin: auto;
+    margin-top: 30px;
+    background-color: aquamarine;
+    align-items: center;
+}
+header > * {
+    padding:20px;
+}
+menu > li {
+    list-style: none;
+    display: block;
+    padding-left: 20px;
+}
+/* body,html {
+    height:100%;
+} */
+.modal-content {
+    margin:auto;
+}
