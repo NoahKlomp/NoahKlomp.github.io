@@ -1,0 +1,477 @@
+// Global SVG setup
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+const SVG = document.createElementNS(SVG_NS, "svg");
+// SVG.setAttribute("width", "800");
+// SVG.setAttribute("height", "600");
+let CONFIG: {
+    "TEXT_COLOUR": string,
+    "STATEMENT_COLOUR": string,
+    "SHAPE_MARGIN": number,
+    "TEXT_MARGIN": number,
+    "LINE_COLOUR": string,
+    "LINE_WIDTH": number,
+    "MAIN_SHAPE_COLOUR": string
+};
+fetch("js/Three/config.json").then(e => e.json()).then(e => {
+    CONFIG = e;
+}).then(() => {
+    init();
+});
+type XCor = number;
+type YCor = number;
+type Coordinates = { x: XCor, y: YCor }
+type Export = {
+    type: string,
+    content: Array<Export> | null,
+    text: string
+}
+
+function c(x: number, y: number): Coordinates {
+    return {x: x, y: y};
+}
+
+const ids = {
+    current: 0,
+    get() {
+        return this.current++;
+    }
+}
+
+class CodeContainer {
+    protected content: Array<Code> = [];
+    protected view: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
+
+    constructor(protected parent: SVGSVGElement) {
+        parent.appendChild(this.view);
+        this.view.setAttribute("id", `${ids.get()}`)
+        this.view.setAttribute("class", "code-container");
+    }
+
+    get id() {
+        return this.view.getAttribute("id");
+    }
+
+    get width() {
+        return Math.max(...this.content.map(i => i.width));
+    }
+
+    get middle() {
+        return Math.max(...this.content.map(i => i.width )) / 2;
+    }
+
+    get height() {
+        return this.content.map(e => e.height).reduce((p, c) => p + c, 0);
+    }
+
+    get export(): Export[] {
+        return this.content.map(c => c.export);
+    }
+
+    add(newCode: Code, index: number) {
+        this.content.splice(index, 0, newCode);
+        setTimeout(() => {
+            newCode.addTo(this.view);
+            newCode.fullUpdate();
+            main.update();
+        }, 0);
+    }
+
+    update() {
+        let newY = 0;
+        const middle = this.middle
+        for (const e of this.content) {
+            e.setTopMid(c(middle, newY));
+            newY += e.height;
+        }
+        this.view.setAttribute("height", `${newY}`);
+    }
+
+    setTopMid(coords: Coordinates) {
+        this.view.setAttribute("x", `${coords.x - this.width / 2}`);
+        this.view.setAttribute("y", `${coords.y}`);
+    }
+
+}
+
+abstract class Code {
+    public readonly _outerElement: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
+    public readonly id = ids.get();
+    protected lines: Array<SVGLineElement> = [];
+
+    constructor(
+        public readonly parent: CodeContainer,
+        protected index: number,
+        protected _innerElement: SVGSVGElement = document.createElementNS(SVG_NS, "svg")
+    ) {
+        this._innerElement.setAttribute("x", `${0}`);
+        this._innerElement.setAttribute("y", `${CONFIG.SHAPE_MARGIN}`);
+        this._innerElement.setAttribute("id", `${this.constructor.name}_inner_${this.id}`);
+
+
+        this._outerElement.setAttribute("id", `${this.constructor.name}_outer_${this.id}`)
+        this._outerElement.appendChild(this._innerElement);
+
+
+        setTimeout(() => {
+            this.lines.push(
+                document.createElementNS(SVG_NS, "line")
+            );
+            this.lines.push(
+                document.createElementNS(SVG_NS, "line")
+            );
+            this.lines[0].setAttribute("id", `${this.constructor.name}_line1_${this.id}`);
+            this.lines[1].setAttribute("id", `${this.constructor.name}_line2_${this.id}`);
+            this.lines[0].setAttribute("stroke", `${CONFIG.LINE_COLOUR}`);
+            this.lines[0].setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
+            this.lines[1].setAttribute("stroke", `${CONFIG.LINE_COLOUR}`);
+            this.lines[1].setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
+            this.lines.forEach(l => this._outerElement.appendChild(l));
+            parent.add(this, index);
+            setTimeout(() => {
+                this.fullUpdate();
+            }, 0);
+        }, 0);
+    }
+
+    get width(): number {
+        return this._innerElement.getBBox().width;
+    }
+
+    get innerHeight(): number {
+        return this._innerElement.getBBox().height;
+    };
+
+    get height(): number {
+        return this.innerHeight + CONFIG.SHAPE_MARGIN * 2;
+    }
+
+    abstract get export(): Export;
+
+    fullUpdate() {
+        this.update();
+        setTimeout(() => {
+            this.lines.forEach((l) => {
+                l.setAttribute("x1", `${this.width / 2}`);
+                l.setAttribute("x2", `${this.width / 2}`);
+            });
+            this.lines[0].setAttribute("y1", `${0}`);
+            this.lines[0].setAttribute("y2", `${CONFIG.SHAPE_MARGIN}`);
+            this.lines[1].setAttribute("y1", `${CONFIG.SHAPE_MARGIN + this.innerHeight}`);
+            this.lines[1].setAttribute("y2", `${2 * CONFIG.SHAPE_MARGIN + this.innerHeight}`);
+            this._outerElement.setAttribute("height", `${this.height}`);
+            this._outerElement.setAttribute("width", `${this.width}`);
+        });
+    };
+
+    protected abstract update(): void;
+
+    setTopMid(coords: Coordinates) {
+        setTimeout(() => {
+            this._outerElement.setAttribute("x", `${coords.x - this.width / 2}`);
+            this._outerElement.setAttribute("y", `${coords.y}`);
+        },0);
+    }
+
+    addTo(parentElement: SVGSVGElement) {
+        parentElement.appendChild(this._outerElement);
+    }
+}
+
+
+class StatementCode extends Code {
+    private _textElement = document.createElementNS(SVG_NS, "text");
+    private _rectangle = document.createElementNS(SVG_NS, "rect");
+
+    constructor(parent: CodeContainer, index: number, private text: string) {
+        super(parent, index);
+        this._innerElement.setAttribute("class", "statement");
+        this._innerElement.textContent = text;
+        this._innerElement.appendChild(this._rectangle);
+        this._innerElement.appendChild(this._textElement);
+        this.fullUpdate();
+    }
+
+    get export(): Export {
+        return {
+            type: "StatementCode",
+            content: null,
+            text: this.text
+        };
+    }
+
+    get width(): number {
+        return this._textElement.getBBox().width + 2 * CONFIG.TEXT_MARGIN;
+    }
+
+    get innerHeight(): number {
+        return this._textElement.getBBox().height + 2 * CONFIG.TEXT_MARGIN;
+    }
+
+    update(): void {
+        this._textElement.textContent = this.text;
+        setTimeout(() => {
+            this._rectangle.setAttribute("width", `${this.width}`);
+            this._rectangle.setAttribute("height", `${this.innerHeight}`);
+        }, 0);
+        this._textElement.setAttribute("text-anchor", "start");
+        this._textElement.setAttribute("dominant-baseline", "hanging");
+        this._textElement.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
+        this._textElement.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
+        this._rectangle.setAttribute("x", `${0}`);
+        this._rectangle.setAttribute("y", `${0}`);
+        this._rectangle.setAttribute("class", "statement-rect");
+        this._rectangle.setAttribute("fill", CONFIG.STATEMENT_COLOUR);
+        main.update();
+    }
+
+    setText(text: string) {
+        this.text = text;
+        this.update();
+    }
+}
+
+
+enum RegularLoopType {
+    FOR = "for",
+    WHILE = "while"
+}
+
+abstract class LoopCode extends Code {
+    private loopbox: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
+    private loopboxshape: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
+    private looptext = document.createElementNS(SVG_NS, "text");
+    private skipLoopLine: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
+    public codeContainer:CodeContainer = new CodeContainer(this._innerElement);
+    constructor(parent: CodeContainer, index: number,private readonly type: RegularLoopType, text: string) {
+        super(parent, index);
+        this._innerElement.appendChild(this.loopbox);
+        this._innerElement.setAttribute("class", "loop_"+type);
+        this.looptext.textContent = text;
+        this.looptext.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
+        this.looptext.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
+        this.looptext.setAttribute("text-anchor", "start");
+        this.looptext.setAttribute("dominant-baseline", "hanging");
+        this.loopboxshape.setAttribute("points", this.getLoopBoxPoints());
+        this.loopbox.appendChild(this.loopboxshape);
+        this.loopbox.appendChild(this.looptext);
+        this.loopbox.setAttribute("id", `loopbox_${ids.get()}`);
+        // this._innerElement.appendChild(this.skipLoopLine);
+        this.skipLoopLine.setAttribute("points", this.getSkipLinePoints());
+        this._outerElement.appendChild(this.skipLoopLine);
+    }
+
+    update() {
+        this.codeContainer.update();
+
+        this.codeContainer.setTopMid(c(this.width / 2 /*+ CONFIG.SHAPE_MARGIN*/,this.loopbox.getBBox().height));
+        this.loopboxshape.setAttribute("points", this.getLoopBoxPoints());
+        this.loopboxshape.setAttribute("fill", this.MAINBOX_COLOUR);
+        this.loopboxshape.setAttribute("stroke", CONFIG.LINE_COLOUR);
+        this.loopboxshape.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
+        this.loopbox.setAttribute("x", `${this.middle}`);
+        main.update();
+    }
+    abstract get MAINBOX_COLOUR():string;
+    private get middle(): number {
+        return this.width / 2;
+    }
+    private getLoopBoxPoints():string {
+        const height = this.looptext.getBBox().height + 2 * CONFIG.TEXT_MARGIN;
+        const width = this.looptext.getBBox().width + 2 * CONFIG.TEXT_MARGIN;
+        return [
+            `0,0`,
+            `${width},0`,
+            `${width},${height}`,
+            `${width / 2},${height + CONFIG.TEXT_MARGIN}`,
+            `0,${height}`,
+            `0,0`
+        ].join(" ")
+    }
+    private getSkipLinePoints(): string {
+        const heightLoopBox = this.loopbox.getBBox().height ;
+        const widthLoopBox = this.loopbox.getBBox().width ;
+        const contentHeight = this.codeContainer.height;
+        const contentWidth = Math.max(this.codeContainer.width, widthLoopBox);
+        const maxWidth = Math.max(widthLoopBox, contentWidth);
+        return [
+            `${(maxWidth - widthLoopBox) / 2 - CONFIG.SHAPE_MARGIN},${heightLoopBox / 2}`,
+            `${0- CONFIG.SHAPE_MARGIN},${heightLoopBox / 2}`,
+            `${0- CONFIG.SHAPE_MARGIN},${heightLoopBox / 2 + contentHeight + CONFIG.SHAPE_MARGIN}`,
+            `${maxWidth / 2},${heightLoopBox / 2 + contentHeight + 2 * CONFIG.SHAPE_MARGIN}`
+        ].join(" ");
+    }
+
+    get export(): Export {
+        return {
+            type: this.type,
+            content: this.codeContainer.export,
+            text: this.looptext.textContent || ""
+        };
+    }
+    get width(): number {
+        return Math.max(this.looptext.getBBox().width + 2 * CONFIG.TEXT_MARGIN, this.codeContainer.width) +
+            2 * CONFIG.SHAPE_MARGIN +
+            CONFIG.LINE_WIDTH;
+    }
+    get height(): number {
+        return this.looptext.getBBox().height +
+            2 * CONFIG.TEXT_MARGIN +
+            3 * CONFIG.SHAPE_MARGIN +
+            this.codeContainer.height;
+    }
+}
+class WhileLoopCode extends LoopCode {
+    get MAINBOX_COLOUR(): string {
+        return "orange";
+    }
+
+    constructor(parent: CodeContainer, index: number, text: string) {
+        super(parent, index, RegularLoopType.WHILE, text);
+    }
+}
+class StartNode {
+    public readonly _element: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
+    private _textElement:SVGTextElement = document.createElementNS(SVG_NS, "text");
+    private _ellipseElement:SVGEllipseElement = document.createElementNS(SVG_NS, "ellipse");
+    public readonly line:SVGLineElement = document.createElementNS(SVG_NS, "line");
+    constructor(parent: SVGSVGElement) {
+        this._element.setAttribute("id", `startNode_${ids.get()}`);
+        this._element.setAttribute("class", "start-node");
+        this._textElement.textContent = "Start";
+        this._textElement.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
+        this._textElement.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
+        this._textElement.setAttribute("text-anchor", "start");
+        this._textElement.setAttribute("dominant-baseline", "hanging");
+        this._ellipseElement.setAttribute("fill", CONFIG.MAIN_SHAPE_COLOUR);
+        this._element.appendChild(this._ellipseElement);
+        this._element.appendChild(this._textElement);
+        this._element.appendChild(this.line);
+        parent.appendChild(this._element);
+        setTimeout(() => {
+            this.update();
+        }, 0);
+    }
+    get width(): number {
+        return this._textElement.getBBox().width + 2 * CONFIG.TEXT_MARGIN;
+    }
+    get height(): number {
+        return this._textElement.getBBox().height + CONFIG.TEXT_MARGIN;
+    }
+
+    update() {
+        const width = this._textElement.getBBox().width + 2 * CONFIG.TEXT_MARGIN;
+        const height = this._textElement.getBBox().height + 2 * CONFIG.TEXT_MARGIN;
+        this._element.setAttribute("width", `${width}`);
+        this._element.setAttribute("height", `${height + CONFIG.SHAPE_MARGIN}`);
+        this.line.setAttribute("x1", `${width / 2}`);
+        this.line.setAttribute("x2", `${width / 2}`);
+        this.line.setAttribute("y1", `${height}`);
+        this.line.setAttribute("y2", `${height + CONFIG.SHAPE_MARGIN}`);
+        this.line.setAttribute("stroke", `${CONFIG.LINE_COLOUR}`);
+        this.line.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
+        this._ellipseElement.setAttribute("cx", `${width / 2}`);
+        this._ellipseElement.setAttribute("cy", `${height / 2}`);
+        this._ellipseElement.setAttribute("rx", `${width / 2}`);
+        this._ellipseElement.setAttribute("ry", `${height / 2}`);
+    }
+    updateTopMid(coords: Coordinates) {
+        this._element.setAttribute("x", `${coords.x - this._element.getBBox().width / 2}`);
+        this._element.setAttribute("y", `${coords.y}`);
+    }
+}
+
+class EndNode {
+    public readonly _element: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
+    private _textElement:SVGTextElement = document.createElementNS(SVG_NS, "text");
+    private _ellipseElement:SVGEllipseElement = document.createElementNS(SVG_NS, "ellipse");
+    public readonly line:SVGLineElement = document.createElementNS(SVG_NS, "line");
+    constructor(parent: SVGSVGElement) {
+        this._element.setAttribute("id", `endNode_${ids.get()}`);
+        this._element.setAttribute("class", "end-node");
+        this._textElement.textContent = "End";
+        this._textElement.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
+        this._textElement.setAttribute("y", `${CONFIG.TEXT_MARGIN + CONFIG.SHAPE_MARGIN}`);
+        this._textElement.setAttribute("text-anchor", "start");
+        this._textElement.setAttribute("dominant-baseline", "hanging");
+        this._ellipseElement.setAttribute("fill", CONFIG.MAIN_SHAPE_COLOUR);
+        this._element.appendChild(this._ellipseElement);
+        this._element.appendChild(this._textElement);
+        this._element.appendChild(this.line);
+        parent.appendChild(this._element);
+        setTimeout(() => {
+            this.update();
+        }, 0);
+    }
+    get width(): number {
+        return this._textElement.getBBox().width + 2 * CONFIG.TEXT_MARGIN;
+    }
+    get height(): number {
+        return this._textElement.getBBox().height + CONFIG.TEXT_MARGIN;
+    }
+
+    update() {
+        const width = this._textElement.getBBox().width + 2 * CONFIG.TEXT_MARGIN;
+        const height = this._textElement.getBBox().height + 2 * CONFIG.TEXT_MARGIN;
+        this._element.setAttribute("width", `${width}`);
+        this._element.setAttribute("height", `${height + CONFIG.SHAPE_MARGIN}`);
+        this.line.setAttribute("x1", `${width / 2}`);
+        this.line.setAttribute("x2", `${width / 2}`);
+        this.line.setAttribute("y1", `${0}`);
+        this.line.setAttribute("y2", `${CONFIG.SHAPE_MARGIN}`);
+        this.line.setAttribute("stroke", `${CONFIG.LINE_COLOUR}`);
+        this.line.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
+        this._textElement.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
+        this._textElement.setAttribute("y", `${CONFIG.TEXT_MARGIN + CONFIG.SHAPE_MARGIN}`);
+        this._ellipseElement.setAttribute("cx", `${width / 2 }`);
+        this._ellipseElement.setAttribute("cy", `${height / 2 + CONFIG.SHAPE_MARGIN}`);
+        this._ellipseElement.setAttribute("rx", `${width / 2}`);
+        this._ellipseElement.setAttribute("ry", `${height / 2}`);
+    }
+    updateTopMid(coords: Coordinates) {
+        this._element.setAttribute("x", `${coords.x - this._element.getBBox().width / 2}`);
+        this._element.setAttribute("y", `${coords.y}`);
+    }
+}
+
+class Main {
+    public SVG: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
+    public container: CodeContainer = new CodeContainer(this.SVG);
+    public readonly startNode: StartNode = new StartNode(this.SVG);
+    public readonly endNode: EndNode = new EndNode(this.SVG);
+
+    constructor() {
+        document.body.appendChild(this.SVG); // Attach to DOM for rendering
+
+        this.init();
+    }
+
+    init() {
+        this.container.update();
+        this.startNode.update();
+        this.endNode.update();
+
+    }
+
+    update() {
+        this.container.update();
+        const middle = Math.max(this.startNode._element.getBBox().width, this.container.middle);
+        console.log(middle);
+        this.startNode.updateTopMid(c(middle, 0));
+        this.container.setTopMid(c(middle,this.startNode._element.getBBox().height ));
+        this.endNode.updateTopMid(c(middle,this.startNode._element.getBBox().height + this.container.height));
+        this.SVG.setAttribute("width", `${middle * 2}`);
+        this.SVG.setAttribute("height", `${this.container.height + this.startNode._element.getBBox().height + this.endNode._element.getBBox().height}`);
+    }
+}
+
+let main: Main;
+
+function init() {
+    main = new Main();
+    const statement1 = new StatementCode(main.container, 0, "This is a statement");
+    const while1 = new WhileLoopCode(main.container, 1, "This is another statement");
+    const looped = new StatementCode(while1.codeContainer, 0, "This is a statement inside a loop");
+    main.update();
+}
+
