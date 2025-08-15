@@ -143,9 +143,9 @@ class Code {
             this.lines.push(document.createElementNS(SVG_NS, "line"));
             this.lines[0].setAttribute("id", `${this.constructor.name}_line1_${this.id}`);
             this.lines[1].setAttribute("id", `${this.constructor.name}_line2_${this.id}`);
-            this.lines[0].setAttribute("stroke", `${CONFIG.LINE_COLOUR}`);
+            this.lines[0].setAttribute("stroke", `${parent.line_colour}`);
             this.lines[0].setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
-            this.lines[1].setAttribute("stroke", `${CONFIG.LINE_COLOUR}`);
+            this.lines[1].setAttribute("stroke", `${parent.line_colour}`);
             this.lines[1].setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
             this.lines.forEach(l => this._outerElement.appendChild(l));
             parent.add(this, index);
@@ -407,70 +407,6 @@ class ForLoopCode extends GeneralLoopCode {
         this.MAINBOX_COLOUR = CONFIG.FOR_SHAPE_COLOUR;
     }
 }
-/*
-class DoWhileLoop extends Code {
-    private loopBox: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
-    private loopBoxShape: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
-    private loopText: SVGTextElement = document.createElementNS(SVG_NS, "text");
-    private doBox: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
-    private doBoxShape: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
-    private doText: SVGTextElement = document.createElementNS(SVG_NS, "text");
-    private skipLoopLine: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
-    private restartLoopLine: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
-    public container: CodeContainer;
-    protected constructor(parent: CodeContainer, index: number, text: string, protected main: Main) {
-        super(parent, index);
-        this.container = new CodeContainer(this._innerElement, this, this.main);
-        this.loopText.textContent = text;
-        this.loopText.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
-        this.loopText.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
-        this.loopText.setAttribute("text-anchor", "start");
-        this.loopText.setAttribute("dominant-baseline", "hanging");
-
-        this.loopBoxShape.setAttribute("points", this.getLoopBoxPoints());
-
-        this.loopBox.appendChild(this.loopBoxShape);
-        this.loopBox.appendChild(this.loopText);
-        this.loopBox.setAttribute("id", `loopbox_${ids.get()}`);
-
-        this._innerElement.appendChild(this.loopBox);
-        this._innerElement.setAttribute("class", "loop_" + type);
-        this._innerElement.appendChild(this.skipLoopLine);
-        this._innerElement.appendChild(this.restartLoopLine);
-        this.loopBox.ondblclick = this.loopBox.oncontextmenu = this.menuFunction.bind(this);
-        this._outerElement.ondblclick = this._outerElement.oncontextmenu = (e: MouseEvent) => {
-        };
-        requestAnimationFrame((): void => this.update());
-    }
-
-    innerUpdate(): void {
-        this.container.setTopMid(c(this.leftSpace, this.loopBox.getBBox().height));
-
-        this._innerElement.setAttribute("height", `${this.height - 2 * CONFIG.SHAPE_MARGIN}`);
-
-        this.loopBoxShape.setAttribute("fill", this.MAINBOX_COLOUR);
-        this.loopBoxShape.setAttribute("stroke", CONFIG.LINE_COLOUR);
-        this.loopBoxShape.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
-
-        this.loopBox.setAttribute("x", `${this.leftSpace - this.loopBox.getBBox().width / 2}`);
-        this.loopBox.setAttribute("width", `${this.loopBoxShape.getBBox().width}`);
-        this.loopBox.setAttribute("height", `${this.loopBoxShape.getBBox().height}`);
-
-        this.skipLoopLine.setAttribute("fill", "none");
-        this.skipLoopLine.setAttribute("stroke", "red");
-        this.skipLoopLine.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
-
-        this.restartLoopLine.setAttribute("fill", "none");
-        this.restartLoopLine.setAttribute("stroke", "green");
-        this.restartLoopLine.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
-        this.loopBoxShape.setAttribute("points", this.getLoopBoxPoints());
-        requestAnimationFrame((): void => {
-            this.skipLoopLine.setAttribute("points", this.getSkipLinePoints());
-            this.restartLoopLine.setAttribute("points", this.getRestartLinePoints());
-        });
-    }
-}
-*/
 class IfStatementCode extends Code {
     constructor(parent, index, text, main) {
         super(parent, index);
@@ -747,13 +683,13 @@ class Main {
 let main;
 function init() {
     main = new Main(document.body);
-    // const looped = new StatementCode(while1.codeContainer, 0, "This is a statement inside a loop");
-    // const looped2 = new StatementCode(while1.codeContainer, 1, "This is another  hhhhhhhhhhhhh    statement inside a loop");
     const while1 = new WhileLoopCode(main.container, 0, "This is another statement", main);
-    const while2 = new WhileLoopCode(while1.container, 0, "while", main);
-    const if1 = new IfStatementCode(while1.container, 0, "zomaar wat, maar dan wat langer. Waarom ziet dit er zo raar uit? bla bla bla bla", main);
-    // const statement1 = new StatementCode(if1.trueContent, 0, "TrueTrue");
-    // const statement2 = new StatementCode(if1.falseContent, 0, "FalseFalseFalsebhjfbrghtfyfhjgdvjkhjjhkgfhhgbjtbhdxhcfvgnjg");
+    const while2 = new ForLoopCode(while1.container, 0, "Nested for-loop", main);
+    const looped = new StatementCode(while1.container, 0, "This is a statement inside a loop");
+    const looped2 = new StatementCode(while2.container, 1, "This is another statement inside a loop");
+    const if1 = new IfStatementCode(while1.container, 0, "Some condition in an If-statement ", main);
+    const statement1 = new StatementCode(if1.trueContent, 0, "This is a statement when the condition is true");
+    const statement2 = new StatementCode(if1.falseContent, 0, "Statement for when the condition is false");
     requestAnimationFrame(() => {
     });
 }

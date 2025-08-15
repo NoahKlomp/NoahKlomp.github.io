@@ -196,9 +196,9 @@ abstract class Code implements Updatable {
             );
             this.lines[0].setAttribute("id", `${this.constructor.name}_line1_${this.id}`);
             this.lines[1].setAttribute("id", `${this.constructor.name}_line2_${this.id}`);
-            this.lines[0].setAttribute("stroke", `${CONFIG.LINE_COLOUR}`);
+            this.lines[0].setAttribute("stroke", `${parent.line_colour}`);
             this.lines[0].setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
-            this.lines[1].setAttribute("stroke", `${CONFIG.LINE_COLOUR}`);
+            this.lines[1].setAttribute("stroke", `${parent.line_colour}`);
             this.lines[1].setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
             this.lines.forEach(l => this._outerElement.appendChild(l));
             parent.add(this, index);
@@ -263,7 +263,7 @@ abstract class Code implements Updatable {
             this._outerElement.setAttribute("width", `${this.width}`);
             requestAnimationFrame((): void => {
                 this.parent.update();
-            })
+            });
         });
     };
 
@@ -841,13 +841,13 @@ let main: Main;
 
 function init() {
     main = new Main(document.body);
-    // const looped = new StatementCode(while1.codeContainer, 0, "This is a statement inside a loop");
-    // const looped2 = new StatementCode(while1.codeContainer, 1, "This is another  hhhhhhhhhhhhh    statement inside a loop");
     const while1 = new WhileLoopCode(main.container, 0, "This is another statement", main);
-    const while2 = new WhileLoopCode(while1.container, 0, "while", main);
-    const if1 = new IfStatementCode(while1.container, 0, "zomaar wat, maar dan wat langer. Waarom ziet dit er zo raar uit? bla bla bla bla", main);
-    // const statement1 = new StatementCode(if1.trueContent, 0, "TrueTrue");
-    // const statement2 = new StatementCode(if1.falseContent, 0, "FalseFalseFalsebhjfbrghtfyfhjgdvjkhjjhkgfhhgbjtbhdxhcfvgnjg");
+    const while2 = new ForLoopCode(while1.container, 0, "Nested for-loop", main);
+    const looped = new StatementCode(while1.container, 0, "This is a statement inside a loop");
+    const looped2 = new StatementCode(while2.container, 1, "This is another statement inside a loop");
+    const if1 = new IfStatementCode(while1.container, 0, "Some condition in an If-statement ", main);
+    const statement1 = new StatementCode(if1.trueContent, 0, "This is a statement when the condition is true");
+    const statement2 = new StatementCode(if1.falseContent, 0, "Statement for when the condition is false");
 
     requestAnimationFrame(() => {
     });
