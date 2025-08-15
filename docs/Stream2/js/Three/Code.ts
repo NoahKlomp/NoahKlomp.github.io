@@ -13,6 +13,7 @@ let CONFIG = { //standard config
     "LINE_COLOUR": "#000",
     "MAIN_SHAPE_COLOUR": "#0ff",
     "WHILE_SHAPE_COLOUR": "#f80",
+    "DO_WHILE_SHAPE_COLOUR": "#ff5833",
     "IF_SHAPE_COLOUR": "#0f0",
     "FOR_SHAPE_COLOUR": "#4c4cff",
     "FUNCTION_SHAPE_COLOUR": "#ff6b6b",
@@ -69,8 +70,8 @@ enum CodeType {
     STATEMENT = "StatementCode",
     WHILE = "WhileLoopCode",
     FOR = "ForLoopCode",
-    // DO_WHILE = "DoWhileLoopCode",
-    // FUNCTION = "FunctionCode",
+    DO_WHILE = "DoWhileLoopCode",
+    FUNCTION = "FunctionCode",
     IF = "IfCode",
     MAIN = "Main"
 }
@@ -179,7 +180,7 @@ abstract class Code implements Updatable {
         this._innerElement.setAttribute("x", `${0}`);
         this._innerElement.setAttribute("y", `${CONFIG.SHAPE_MARGIN}`);
         this._innerElement.setAttribute("id", `${this.constructor.name}_inner_${this.id}`);
-
+        this._outerElement.classList.add(`${this.constructor.name}`);
 
         this._outerElement.setAttribute("id", `${this.constructor.name}_outer_${this.id}`)
         this._outerElement.appendChild(this._innerElement);
@@ -336,7 +337,7 @@ type RegularLoopType = CodeType.FOR | CodeType.WHILE;
 
 abstract class GeneralLoopCode extends Code {
     private loopBox: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
-    private loopBoxShape: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
+    private loopBoxShape: SVGPolygonElement = document.createElementNS(SVG_NS, "polygon");
     private loopText: SVGTextElement = document.createElementNS(SVG_NS, "text");
     private skipLoopLine: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
     private restartLoopLine: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
@@ -345,6 +346,7 @@ abstract class GeneralLoopCode extends Code {
     protected constructor(parent: CodeContainer, index: number, protected readonly type: RegularLoopType, text: string, protected main: Main) {
         super(parent, index);
         this.container = new CodeContainer(this._innerElement, this, this.main);
+        this.container.line_colour = "green";
         this.loopText.textContent = text;
         this.loopText.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
         this.loopText.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
@@ -373,7 +375,7 @@ abstract class GeneralLoopCode extends Code {
         this._innerElement.setAttribute("height", `${this.height - 2 * CONFIG.SHAPE_MARGIN}`);
 
         this.loopBoxShape.setAttribute("fill", this.MAINBOX_COLOUR);
-        this.loopBoxShape.setAttribute("stroke", CONFIG.LINE_COLOUR);
+        this.loopBoxShape.setAttribute("stroke", this.parent.line_colour);
         this.loopBoxShape.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
 
         this.loopBox.setAttribute("x", `${this.leftSpace - this.loopBox.getBBox().width / 2}`);
@@ -413,7 +415,7 @@ abstract class GeneralLoopCode extends Code {
      * Generates the points for the loop box shape.
      * @private
      */
-    public getLoopBoxPoints(): string {
+    private getLoopBoxPoints(): string {
         const height: number = this.loopText.getBBox().height + 2 * CONFIG.TEXT_MARGIN;
         const width: number = this.loopText.getBBox().width + 2 * CONFIG.TEXT_MARGIN;
         return [
@@ -514,11 +516,166 @@ class ForLoopCode extends GeneralLoopCode {
     }
 }
 
+class DoWhileLoop extends Code {
+    protected doBox: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
+    private doText: SVGTextElement = document.createElementNS(SVG_NS, "text");
+    private doShape: SVGPolygonElement = document.createElementNS(SVG_NS, "polygon");
+    protected loopBox: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
+    private loopText: SVGTextElement = document.createElementNS(SVG_NS, "text");
+    private loopShape: SVGPolygonElement = document.createElementNS(SVG_NS, "polygon");
+    public container: CodeContainer;
+    private restartLine = document.createElementNS(SVG_NS, "polyline");
+    constructor(parent: CodeContainer, index: number, text: string, protected main: Main) {
+        super(parent, index);
+        this.doBox.appendChild(this.doShape);
+        this.doBox.appendChild(this.doText);
+        this.doText.textContent = "Do";
+
+        this.doText.setAttribute("text-anchor", "start");
+        this.doText.setAttribute("dominant-baseline", "hanging");
+        this.doText.setAttribute("x", `${2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+        this.doText.setAttribute("y", `${CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+
+        this._innerElement.appendChild(this.doBox);
+        this.doBox.classList.add("DoWhileLoopDoBox");
+
+        this.container = new CodeContainer(this._innerElement, this, this.main);
+
+        this.loopBox.appendChild(this.loopShape);
+        [this.doShape, this.loopShape].forEach(shape => {
+            shape.setAttribute("fill", CONFIG.DO_WHILE_SHAPE_COLOUR);
+            shape.setAttribute("stroke", this.parent.line_colour);
+            shape.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
+        })
+        this.restartLine.setAttribute("fill", "none");
+        this.restartLine.setAttribute("stroke", "green");
+        this.restartLine.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
+        this.loopBox.appendChild(this.loopText);
+        this._innerElement.appendChild(this.loopBox);
+        this.loopBox.classList.add("DoWhileLoopBox");
+        this.loopText.textContent = text;
+        this.loopText.setAttribute("text-anchor", "start");
+        this.loopText.setAttribute("dominant-baseline", "hanging");
+        this.loopText.setAttribute("x", `${CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+        this.loopText.setAttribute("y", `${CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+
+        this._innerElement.appendChild(this.restartLine);
+        this._innerElement.classList.add("DoWhileLoop");
+
+
+
+        requestAnimationFrame(() =>{
+            this.loopShape.setAttribute("points", this.getLoopBoxPoints());
+            this.doShape.setAttribute("points", this.getDoBoxPoints());
+            requestAnimationFrame(this.update.bind(this));
+        });
+    }
+
+    protected innerUpdate():void {
+        // const wLoop: number = this.loopText.getBBox().width + 2 * CONFIG.TEXT_MARGIN + 2 * CONFIG.LINE_WIDTH;
+        // const hLoop: number = this.loopText.getBBox().height + 2 * CONFIG.TEXT_MARGIN + 2 * CONFIG.LINE_WIDTH;
+        // const wDo: number = this.doText.getBBox().width + 4 * CONFIG.TEXT_MARGIN + 2 * CONFIG.LINE_WIDTH;
+        // const hDo: number = this.doText.getBBox().height + 4 * CONFIG.TEXT_MARGIN + 2 * CONFIG.LINE_WIDTH;
+        const wLoop: number = this.loopShape.getBBox().width + 2 * CONFIG.LINE_WIDTH;
+        const hLoop: number = this.loopShape.getBBox().height + 2 * CONFIG.LINE_WIDTH;
+        const wDo: number = this.doShape.getBBox().width + 2 * CONFIG.LINE_WIDTH;
+        const hDo: number = this.doShape.getBBox().height + 2 * CONFIG.LINE_WIDTH;
+
+        const cPoint = Math.max(0,wLoop / 2, wDo / 2, this.container.leftSpace);
+        this.doBox.setAttribute("x",`${cPoint - wDo / 2}`);
+        this.doBox.setAttribute("y",`${0}`);
+        this.doBox.setAttribute("width",`${this.doText.getBBox().width + 4 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+        this.doBox.setAttribute("height",`${this.doText.getBBox().height + 4 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+        this.container.setTopMid(c(cPoint, hDo));
+        this.loopBox.setAttribute("x",`${cPoint - wLoop / 2}`);
+        this.loopBox.setAttribute("y",`${hDo + this.container.height}`);
+        this.loopBox.setAttribute("height",`${this.loopText.getBBox().height + 3 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+        this.loopBox.setAttribute("width",`${this.loopText.getBBox().width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+        this.restartLine.setAttribute("points", this.getRestartPoints());
+    }
+    set text(newText:string) {
+        this.loopText.textContent = newText;
+        requestAnimationFrame(this.update.bind(this));
+    }
+    get text(): string {
+        return this.loopText.textContent || "";
+    }
+
+    protected getDoBoxPoints(): string {
+        const height: number = this.doText.getBBox().height + 4 * CONFIG.TEXT_MARGIN;
+        const width: number = this.doText.getBBox().width + 4 * CONFIG.TEXT_MARGIN;
+        return [
+            `${CONFIG.LINE_WIDTH},${CONFIG.LINE_WIDTH}`,
+            `${width - CONFIG.LINE_WIDTH},${CONFIG.LINE_WIDTH}`,
+            `${width / 2 + CONFIG.LINE_WIDTH},${height - CONFIG.LINE_WIDTH}`,
+        ].join(" ")
+    }
+
+
+    /**
+     * Generates the points for the loop box shape.
+     * @private
+     */
+    private getLoopBoxPoints(): string {
+        const height: number = this.loopText.getBBox().height + 2 * CONFIG.TEXT_MARGIN;
+        const width: number = this.loopText.getBBox().width + 2 * CONFIG.TEXT_MARGIN;
+        return [
+            `${CONFIG.LINE_WIDTH / 2},${CONFIG.LINE_WIDTH / 2}`,
+            `${width - CONFIG.LINE_WIDTH},${CONFIG.LINE_WIDTH / 2}`,
+            `${width - CONFIG.LINE_WIDTH},${height - CONFIG.LINE_WIDTH / 2}`,
+            `${width / 2 + CONFIG.LINE_WIDTH},${height + CONFIG.TEXT_MARGIN}`,
+            `${CONFIG.LINE_WIDTH / 2},${height - CONFIG.LINE_WIDTH / 2}`
+        ].join(" ")
+    }
+
+    getRestartPoints(): string {
+        const heightDoBox = this.doBox.getBBox().height;
+        const widthDoBox = this.doBox.getBBox().width;
+        const heightLoopBox = this.loopBox.getBBox().height;
+        const widthLoopBox = this.loopBox.getBBox().width;
+        const heightContent = this.container.height;
+        return [
+            `${this.leftSpace + widthLoopBox / 2},${heightContent + heightDoBox + heightLoopBox / 2 }`,
+            `${this.width - CONFIG.LINE_WIDTH},${heightContent + heightDoBox + heightLoopBox / 2 }`,
+            `${this.width - CONFIG.LINE_WIDTH},${heightDoBox / 2}`,
+            `${this.leftSpace + widthDoBox / 4},${heightDoBox / 2}`
+        ].join(" ");
+    }
+
+    get width(): number {
+        return this.leftSpace + this.rightSpace;
+    }
+    get leftSpace():number {
+        return Math.max(0,
+                (this.doText.getBBox().width + 4 * CONFIG.TEXT_MARGIN) / 2,
+                (this.loopText.getBBox().width + 2 * CONFIG.TEXT_MARGIN) / 2,
+                this.container.leftSpace
+            );
+    }
+    get rightSpace():number {
+        return Math.max(0,
+            (this.doText.getBBox().width + 4 * CONFIG.TEXT_MARGIN) / 2,
+            (this.loopText.getBBox().width + 2 * CONFIG.TEXT_MARGIN) / 2,
+            this.container.rightSpace
+        ) + 2 * CONFIG.SHAPE_MARGIN;
+    }
+
+    get export(): Export {
+        return {
+            type: CodeType.DO_WHILE,
+            content: {
+                "Looped": this.container.export
+            },
+            text: this.loopText.textContent || ""
+        }
+    }
+}
+
 class IfStatementCode extends Code {
     public readonly trueContent: CodeContainer;
     public readonly falseContent: CodeContainer;
     private ifBox: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
-    private ifBoxShape: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
+    private ifBoxShape: SVGPolygonElement = document.createElementNS(SVG_NS, "polygon");
     private textBox: SVGTextElement = document.createElementNS(SVG_NS, "text");
     private trueLine1: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
     private trueLine2: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
@@ -528,7 +685,9 @@ class IfStatementCode extends Code {
     constructor(parent: CodeContainer, index: number, text: string, main: Main) {
         super(parent, index);
         this.trueContent = new CodeContainer(this._innerElement, this, main);
+        this.trueContent.line_colour = "green";
         this.falseContent = new CodeContainer(this._innerElement, this, main);
+        this.falseContent.line_colour = "red";
         this.ifBox.appendChild(this.ifBoxShape);
         this.ifBox.appendChild(this.textBox);
         this._innerElement.appendChild(this.ifBox);
@@ -540,15 +699,18 @@ class IfStatementCode extends Code {
         this.textBox.textContent = text;
 
         this.ifBoxShape.setAttribute("fill", CONFIG.IF_SHAPE_COLOUR);
-        this.ifBoxShape.setAttribute("stroke", CONFIG.LINE_COLOUR);
+        this.ifBoxShape.setAttribute("stroke", this.parent.line_colour);
         this.ifBoxShape.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
         this.ifBox.ondblclick = this.ifBox.oncontextmenu = this.menuFunction.bind(this);
-        this._outerElement.ondblclick = this._outerElement.oncontextmenu = (e: MouseEvent) => {
+        this._outerElement.ondblclick = this._outerElement.oncontextmenu = () => {
         };
+        this.trueLine1.setAttribute("stroke","green");
+        this.trueLine2.setAttribute("stroke","green");
+        this.falseLine1.setAttribute("stroke","red");
+        this.falseLine2.setAttribute("stroke","red");
         [this.trueLine1, this.trueLine2, this.falseLine1, this.falseLine2].forEach(line => {
             this._innerElement.appendChild(line);
-            line.setAttribute("fill", "none");
-            line.setAttribute("stroke", CONFIG.LINE_COLOUR);
+            line.setAttribute("fill", "none")
             line.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
         });
         requestAnimationFrame(this.update.bind(this));
@@ -577,7 +739,7 @@ class IfStatementCode extends Code {
         return [
             `${xTrue},${yContent + heightTrue}`,
             `${xTrue},${maxLowY + CONFIG.SHAPE_MARGIN}`,
-            `${this.width / 2},${ maxLowY + CONFIG.SHAPE_MARGIN}`
+            `${this.leftSpace},${ maxLowY + CONFIG.SHAPE_MARGIN}`
         ].join(" ");
     }
 
@@ -596,7 +758,7 @@ class IfStatementCode extends Code {
         return [
             `${xFalse},${yContent + heightFalse}`,
             `${xFalse},${ maxLowY + CONFIG.SHAPE_MARGIN}`,
-            `${this.width / 2},${ maxLowY + CONFIG.SHAPE_MARGIN}`
+            `${this.leftSpace},${ maxLowY + CONFIG.SHAPE_MARGIN}`
         ].join(" ");
     }
 
@@ -628,7 +790,7 @@ class IfStatementCode extends Code {
         return this.leftSpace + this.rightSpace;
     }
 
-    get rightSpace(): number {
+    get rightSpace(): number { //TODO: FIX
         const minHalfSize: number = (this.textBox.getBBox().width + 4 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH + CONFIG.SHAPE_MARGIN) / 2;
         if (this.falseContent.leftSpace + CONFIG.SHAPE_MARGIN < minHalfSize) {
             return minHalfSize + this.falseContent.rightSpace + CONFIG.SHAPE_MARGIN;
@@ -848,7 +1010,8 @@ function init() {
     const if1 = new IfStatementCode(while1.container, 0, "Some condition in an If-statement ", main);
     const statement1 = new StatementCode(if1.trueContent, 0, "This is a statement when the condition is true");
     const statement2 = new StatementCode(if1.falseContent, 0, "Statement for when the condition is false");
-
+    const dowhile1 = new DoWhileLoop(main.container, 1, "Do While Loop", main);
+    const statement3 = new StatementCode(dowhile1.container, 0, "Statement within the doWhile");
     requestAnimationFrame(() => {
     });
 }
