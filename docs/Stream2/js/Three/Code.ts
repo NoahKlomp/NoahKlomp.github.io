@@ -96,8 +96,7 @@ class CodeContainer implements Updatable {
     protected view: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
     public line_colour: string = CONFIG.LINE_COLOUR;
     constructor(protected parentElement: SVGSVGElement,
-                protected parent: Updatable,
-                protected main: Main) {
+                protected parent: Updatable) {
         parentElement.appendChild(this.view);
         this.view.setAttribute("id", `${ids.get()}`)
         this.view.setAttribute("class", "code-container");
@@ -164,6 +163,11 @@ class CodeContainer implements Updatable {
         this.view.setAttribute("x", `${coords.x - this.leftSpace}`);
         this.view.setAttribute("y", `${coords.y}`);
     }
+    clear() {
+        this.content.forEach((): void => {
+            this.remove(0);
+        });
+    }
 
 }
 
@@ -222,11 +226,19 @@ abstract class Code implements Updatable {
             parent.remove(this.index);
         }));
         map.set("Add After", (() => {
-
+            new Creator((e:Export) => {
+                Creator.exportToCode(e, this.parent, this.index + 1);
+            });
+        }));
+        map.set("Edit Text", (() => {
+            new TextEditor(this,(newText:string) => {
+                this.text = newText;
+            });
         }));
         return map;
     }
-
+    abstract get text():string;
+    abstract set text(newText:string);
     get width(): number {
         return this._innerElement.getBBox().width;
     }
@@ -326,9 +338,12 @@ class StatementCode extends Code {
         this._rectangle.setAttribute("height", `${this.innerHeight}`);
     }
 
-    setText(text: string) {
-        this._textElement.textContent = text;
+    set text(newText: string) {
+        this._textElement.innerHTML = newText.replace("\n","<br/>");
         requestAnimationFrame(this.update.bind(this));
+    }
+    get text():string {
+        return this._textElement.textContent || "";
     }
 }
 
@@ -343,9 +358,9 @@ abstract class GeneralLoopCode extends Code {
     private restartLoopLine: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
     public container: CodeContainer;
 
-    protected constructor(parent: CodeContainer, index: number, protected readonly type: RegularLoopType, text: string, protected main: Main) {
+    protected constructor(parent: CodeContainer, index: number, protected readonly type: RegularLoopType, text: string) {
         super(parent, index);
-        this.container = new CodeContainer(this._innerElement, this, this.main);
+        this.container = new CodeContainer(this._innerElement, this);
         this.container.line_colour = "green";
         this.loopText.textContent = text;
         this.loopText.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
@@ -368,6 +383,7 @@ abstract class GeneralLoopCode extends Code {
         };
         requestAnimationFrame((): void => this.update());
     }
+
 
     innerUpdate(): void {
         this.container.setTopMid(c(this.leftSpace, this.loopBox.getBBox().height));
@@ -492,9 +508,23 @@ abstract class GeneralLoopCode extends Code {
             this.container.height;
     }
 
-    set text(s: string) {
-        this.loopText.textContent = s;
-        requestAnimationFrame(this.innerUpdate.bind(this));
+    set text(newText: string) {
+        this.loopText.innerHTML = newText.replace("\n","<br/>");
+        requestAnimationFrame(this.update.bind(this));
+    }
+    get text(): string {
+        return this.loopText.textContent || ""
+    }
+
+    getContextMenuMap():Map<string,() => void> {
+        return super.getContextMenuMap()
+            .set("Add to start of loop", () => {
+                new Creator((e:Export) => {
+                    Creator.exportToCode(e, this.container, 0);
+                })
+            }).set("Clear", () => {
+                this.container.clear();
+            });
     }
 }
 
@@ -502,8 +532,8 @@ class WhileLoopCode extends GeneralLoopCode {
     protected MAINBOX_COLOUR: string = CONFIG.WHILE_SHAPE_COLOUR;
 
 
-    constructor(parent: CodeContainer, index: number, text: string, main: Main) {
-        super(parent, index, CodeType.WHILE, text, main);
+    constructor(parent: CodeContainer, index: number, text: string) {
+        super(parent, index, CodeType.WHILE, text);
     }
 }
 
@@ -511,8 +541,8 @@ class ForLoopCode extends GeneralLoopCode {
     protected MAINBOX_COLOUR: string = CONFIG.FOR_SHAPE_COLOUR;
 
 
-    constructor(parent: CodeContainer, index: number, text: string, main: Main) {
-        super(parent, index, CodeType.FOR, text, main);
+    constructor(parent: CodeContainer, index: number, text: string) {
+        super(parent, index, CodeType.FOR, text);
     }
 }
 
@@ -525,7 +555,7 @@ class DoWhileLoop extends Code {
     private loopShape: SVGPolygonElement = document.createElementNS(SVG_NS, "polygon");
     public container: CodeContainer;
     private restartLine = document.createElementNS(SVG_NS, "polyline");
-    constructor(parent: CodeContainer, index: number, text: string, protected main: Main) {
+    constructor(parent: CodeContainer, index: number, text: string) {
         super(parent, index);
         this.doBox.appendChild(this.doShape);
         this.doBox.appendChild(this.doText);
@@ -539,7 +569,7 @@ class DoWhileLoop extends Code {
         this._innerElement.appendChild(this.doBox);
         this.doBox.classList.add("DoWhileLoopDoBox");
 
-        this.container = new CodeContainer(this._innerElement, this, this.main);
+        this.container = new CodeContainer(this._innerElement, this);
 
         this.loopBox.appendChild(this.loopShape);
         [this.doShape, this.loopShape].forEach(shape => {
@@ -558,6 +588,9 @@ class DoWhileLoop extends Code {
         this.loopText.setAttribute("dominant-baseline", "hanging");
         this.loopText.setAttribute("x", `${CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
         this.loopText.setAttribute("y", `${CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+        this.loopBox.ondblclick = this.loopBox.oncontextmenu = this.menuFunction.bind(this);
+        this.doBox.ondblclick = this.doBox.oncontextmenu = this.menuFunction.bind(this);
+        this._outerElement.ondblclick = this._outerElement.oncontextmenu = (e: MouseEvent) => {};
 
         this._innerElement.appendChild(this.restartLine);
         this._innerElement.classList.add("DoWhileLoop");
@@ -594,7 +627,7 @@ class DoWhileLoop extends Code {
         this.restartLine.setAttribute("points", this.getRestartPoints());
     }
     set text(newText:string) {
-        this.loopText.textContent = newText;
+        this.loopText.innerHTML = newText.replace("\n","<br/>");
         requestAnimationFrame(this.update.bind(this));
     }
     get text(): string {
@@ -669,6 +702,16 @@ class DoWhileLoop extends Code {
             text: this.loopText.textContent || ""
         }
     }
+    getContextMenuMap():Map<string,() => void> {
+        return super.getContextMenuMap()
+            .set("Add to start of loop", () => {
+                new Creator((e:Export) => {
+                    Creator.exportToCode(e, this.container, 0);
+                })
+            }).set("Clear", () => {
+                this.container.clear();
+            });
+    }
 }
 
 class IfStatementCode extends Code {
@@ -682,11 +725,11 @@ class IfStatementCode extends Code {
     private falseLine1: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
     private falseLine2: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
 
-    constructor(parent: CodeContainer, index: number, text: string, main: Main) {
+    constructor(parent: CodeContainer, index: number, text: string) {
         super(parent, index);
-        this.trueContent = new CodeContainer(this._innerElement, this, main);
+        this.trueContent = new CodeContainer(this._innerElement, this);
         this.trueContent.line_colour = "green";
-        this.falseContent = new CodeContainer(this._innerElement, this, main);
+        this.falseContent = new CodeContainer(this._innerElement, this);
         this.falseContent.line_colour = "red";
         this.ifBox.appendChild(this.ifBoxShape);
         this.ifBox.appendChild(this.textBox);
@@ -713,6 +756,10 @@ class IfStatementCode extends Code {
             line.setAttribute("fill", "none")
             line.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
         });
+
+        this.ifBox.ondblclick = this.ifBox.oncontextmenu = this.menuFunction.bind(this);
+        this._outerElement.ondblclick = this._outerElement.oncontextmenu = (e: MouseEvent) => {
+        };
         requestAnimationFrame(this.update.bind(this));
     }
 
@@ -773,8 +820,7 @@ class IfStatementCode extends Code {
             heightTrue: number = this.trueContent.height, heightFalse: number = this.falseContent.height,
             yContent: number = heightIfBox + CONFIG.SHAPE_MARGIN,
             xTrue: number = this.trueContent.leftSpace,
-            xFalse: number = xTrue + Math.max(this.trueContent.rightSpace, widthIfBox / 2) + 4 * CONFIG.SHAPE_MARGIN +
-                Math.max(widthIfBox / 2, this.falseContent.leftSpace);
+            xFalse: number = this.width - this.falseContent.rightSpace;
         this.trueContent.setTopMid(c(xTrue, yContent));
         this.falseContent.setTopMid(c(xFalse, yContent));
         this.falseLine1.setAttribute("points", this.getFalseLine1Points(heightIfBox, widthIfBox, widthTrue, heightTrue, widthFalse, heightFalse, yContent, xTrue, xFalse));
@@ -795,7 +841,7 @@ class IfStatementCode extends Code {
         if (this.falseContent.leftSpace + CONFIG.SHAPE_MARGIN < minHalfSize) {
             return minHalfSize + this.falseContent.rightSpace + CONFIG.SHAPE_MARGIN;
         }
-        return this.falseContent.width
+        return this.falseContent.width + CONFIG.SHAPE_MARGIN;
     }
 
     get leftSpace(): number {
@@ -803,7 +849,7 @@ class IfStatementCode extends Code {
         if (this.trueContent.rightSpace + CONFIG.SHAPE_MARGIN < minHalfSize) {
             return minHalfSize + this.trueContent.leftSpace + CONFIG.SHAPE_MARGIN;
         }
-        return this.trueContent.width
+        return this.trueContent.width + CONFIG.SHAPE_MARGIN;
     }
 
     get export(): Export {
@@ -821,6 +867,10 @@ class IfStatementCode extends Code {
     get text(): string {
         return this.textBox.textContent ? this.textBox.textContent : "";
     }
+    set text(newText:string) {
+        this.textBox.innerHTML = newText.replace("\n","<br/>");
+        requestAnimationFrame(()=>this.update());
+    }
 
     private getIfBoxPoints(): string {
         const height: number = this.textBox.getBBox().height + 2 * CONFIG.TEXT_MARGIN;
@@ -835,6 +885,25 @@ class IfStatementCode extends Code {
             `${CONFIG.LINE_WIDTH},${CONFIG.LINE_WIDTH / 2 + height / 2}`
         ].join(" ")
     }
+
+    getContextMenuMap():Map<string,() => void> {
+        return super.getContextMenuMap()
+            .set("Add to start of false block", () => {
+                new Creator((e:Export) => {
+                    Creator.exportToCode(e, this.falseContent, 0);
+                })
+            })
+            .set("Clear false block", () => {
+                this.falseContent.clear();
+            })
+            .set("Add to start of true block", () => {
+                new Creator((e:Export) => {
+                    Creator.exportToCode(e, this.trueContent, 0);
+                })
+            }).set("Clear true block", () => {
+                this.trueContent.clear();
+            });
+    }
 }
 
 /**
@@ -847,7 +916,7 @@ class StartNode {
     private _ellipseElement: SVGEllipseElement = document.createElementNS(SVG_NS, "ellipse");
     public readonly line: SVGLineElement = document.createElementNS(SVG_NS, "line");
 
-    constructor(parent: SVGSVGElement) {
+    constructor(parent: SVGSVGElement, private container:CodeContainer) {
         this._element.setAttribute("id", `startNode_${ids.get()}`);
         this._element.setAttribute("class", "start-node");
         this._textElement.textContent = "Start";
@@ -888,11 +957,28 @@ class StartNode {
         this._ellipseElement.setAttribute("cy", `${height / 2}`);
         this._ellipseElement.setAttribute("rx", `${width / 2}`);
         this._ellipseElement.setAttribute("ry", `${height / 2}`);
+        this._element.oncontextmenu =
+            this._element.ondblclick = this.menuFunction.bind(this);
     }
 
     updateTopMid(coords: Coordinates) {
         this._element.setAttribute("x", `${coords.x - this._element.getBBox().width / 2}`);
         this._element.setAttribute("y", `${coords.y}`);
+    }
+    menuFunction(e: MouseEvent): void {
+        e.preventDefault();
+        const parent:CodeContainer = this.container;
+        const map:Map<string,()=>void> = this.getContextMenuMap()
+        CustomMenu.show(e.pageX, e.pageY, map);
+    };
+    getContextMenuMap():Map<string,() => void> {
+        const parent:CodeContainer = this.container;
+        return new Map<string, () => void>()
+            .set("Add", (() => {
+                new Creator((e:Export) => {
+                    Creator.exportToCode(e, this.container, 0);
+                });
+            }));
     }
 }
 
@@ -922,6 +1008,7 @@ class EndNode {
         requestAnimationFrame(() => {
             this.update();
         });
+
     }
 
     get width(): number {
@@ -959,8 +1046,8 @@ class EndNode {
 
 class Main {
     public SVG: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
-    public readonly startNode: StartNode = new StartNode(this.SVG);
-    public readonly container: CodeContainer = new CodeContainer(this.SVG, this, this);
+    public readonly container: CodeContainer = new CodeContainer(this.SVG, this);
+    public readonly startNode: StartNode = new StartNode(this.SVG, this.container);
     public readonly endNode: EndNode = new EndNode(this.SVG);
 
     constructor(bodyElement: HTMLElement) {
@@ -1003,17 +1090,7 @@ let main: Main;
 
 function init() {
     main = new Main(document.body);
-    const while1 = new WhileLoopCode(main.container, 0, "This is another statement", main);
-    const while2 = new ForLoopCode(while1.container, 0, "Nested for-loop", main);
-    const looped = new StatementCode(while1.container, 0, "This is a statement inside a loop");
-    const looped2 = new StatementCode(while2.container, 1, "This is another statement inside a loop");
-    const if1 = new IfStatementCode(while1.container, 0, "Some condition in an If-statement ", main);
-    const statement1 = new StatementCode(if1.trueContent, 0, "This is a statement when the condition is true");
-    const statement2 = new StatementCode(if1.falseContent, 0, "Statement for when the condition is false");
-    const dowhile1 = new DoWhileLoop(main.container, 1, "Do While Loop", main);
-    const statement3 = new StatementCode(dowhile1.container, 0, "Statement within the doWhile");
-    requestAnimationFrame(() => {
-    });
+
 }
 function exportAll() {
     return JSON.stringify(main.export);

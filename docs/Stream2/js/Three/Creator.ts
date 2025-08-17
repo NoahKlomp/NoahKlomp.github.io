@@ -1,45 +1,154 @@
 class Creator extends PopUp {
-    private closeButton: HTMLAnchorElement = document.createElement('a');
     private form: HTMLFormElement = document.createElement('form');
     private types: HTMLSelectElement = document.createElement('select');
+
     /**
      * Creates an instance of Creator.
      * This constructor is protected to prevent direct instantiation.
      * Use subclasses to create specific instances.
      */
-    constructor(doAfter:(export1: Export) => void) {
+    constructor(doAfter: (export1: Export) => void) {
         super();
-        this.element.appendChild(this.closeButton);
-        this.element.appendChild(this.form);
+        this.add(this.form);
         this.form.appendChild(this.types);
-        this.closeButton.innerHTML = 'Close';
-        this.closeButton.className = 'close-button';
-        this.closeButton.style.display = 'block';
-        this.closeButton.onclick = this.close.bind(this);
+
         for (let t in CodeType) {
+            if (t === CodeType.FUNCTION || t === CodeType.MAIN)
+                continue;
             let thing = document.createElement("option");
             thing.textContent = t;
             this.types.appendChild(thing);
         }
+        this.types.value = "select";
         this.types.onchange = (e) => {
             e.preventDefault();
-            switch (this.types.value) {
-                case 'StatementCode':
-                    return {
-                        type: 'StatementCode',
-                        content: null,
-                        text: "Empty Statement"
-                    };
-                    break;
-                //TODO: finish
+            try {
+                switch (this.types.value) {
+                    case 'STATEMENT':
+                        doAfter({
+                            type: CodeType.STATEMENT,
+                            content: {},
+                            text: "Empty Statement"
+                        });
+                        break;
+                    case 'WHILE':
+                        doAfter({
+                            type: CodeType.WHILE,
+                            content: {
+                                Looped: []
+                            },
+                            text: "empty condition"
+                        });
+                        break;
+                    case 'FOR':
+                        doAfter({
+                            type: CodeType.FOR,
+                            content: {
+                                Looped: []
+                            },
+                            text: "empty iteration"
+                        });
+                        break;
+                    case 'DO_WHILE':
+                        doAfter({
+                            type: CodeType.DO_WHILE,
+                            content: {
+                                Looped: []
+                            },
+                            text: "empty condition"
+                        });
+                        break;
+                    case 'FUNCTION':
+                        doAfter({
+                            type: CodeType.FUNCTION,
+                            content: {
+                                FunctionDefinition: []
+                            },
+                            text: "empty condition"
+                        });
+                        break;
+                    case 'IF':
+                        doAfter({
+                            type: CodeType.IF,
+                            content: {
+                                True: [],
+                                False: []
+                            },
+                            text: "empty condition"
+                        });
+                        break;
+                    default:
+                        throw new InvalidExportError("Not recognised type name: " + this.types.value);
+                }
+            } finally {
+                this.close();
             }
-            this.close();
+        }
+        this.setFullScreen();
+        this.open();
+    }
+
+    static exportToCode(export1: Export, parent: CodeContainer, index: number): Code {
+        switch (export1.type) {
+            case CodeType.STATEMENT:
+                return new StatementCode(parent, index, export1.text);
+            case CodeType.WHILE:
+                if (export1.content) {
+                    if (export1.content["Looped"]) {
+                        const element = new WhileLoopCode(parent, index, export1.text);
+                        export1.content['Looped'].forEach((value, i) => {
+                            Creator.exportToCode(value, element.container, i);
+                        });
+                        return element;
+                    }
+                }
+                throw new InvalidExportError("Cannot obtain Looped content");
+
+            case CodeType.FOR:
+                if (export1.content) {
+                    if (export1.content["Looped"]) {
+                        const element = new ForLoopCode(parent, index, export1.text);
+                        export1.content['Looped'].forEach((value, i) => {
+                            Creator.exportToCode(value, element.container, i);
+                        });
+                        return element;
+                    }
+                }
+                throw new InvalidExportError("Cannot obtain Looped content");
+            case CodeType.DO_WHILE:
+                if (export1.content) {
+                    if (export1.content["Looped"]) {
+                        const element = new DoWhileLoop(parent, index, export1.text);
+                        export1.content['Looped'].forEach((value, i) => {
+                            Creator.exportToCode(value, element.container, i);
+                        });
+                        return element;
+                    }
+                }
+                throw new InvalidExportError("Cannot obtain Looped content");
+            case CodeType.IF:
+                if (export1.content) {
+                    if (export1.content["True"] && export1.content["False"]) {
+                        const element = new IfStatementCode(parent, index, export1.text);
+                        export1.content['True'].forEach((value, i) => {
+                            Creator.exportToCode(value, element.trueContent, i);
+                        });
+                        export1.content['False'].forEach((value, i) => {
+                            Creator.exportToCode(value, element.falseContent, i);
+                        });
+                        return element;
+                    }
+                }
+                throw new InvalidExportError("Cannot obtain True and False content");
+            default:
+                throw new InvalidExportError("Given Export is not readable, export:" + export1);
+
         }
     }
-    close() {
+}
 
-    }
-    static exportToCode(parent: CodeContainer, index: number, text: string, main:Main):Code {
-        throw Error("not supported yet");
+class InvalidExportError extends Error {
+    constructor(message: string) {
+        super(message);
     }
 }

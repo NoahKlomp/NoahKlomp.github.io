@@ -2,6 +2,7 @@
 class PopUp {
     constructor() {
         this.element = document.createElement('div');
+        this.closeButton = document.createElement('a');
         this.element.className = 'pop-up';
         this.element.style.position = 'fixed';
         this.element.style.zIndex = '1000';
@@ -11,6 +12,21 @@ class PopUp {
         this.element.style.padding = '10px';
         this.element.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.1)';
         this.element.style.display = 'none'; // Initially hidden
+        document.body.appendChild(this.element);
+        this.add(this.closeButton);
+        this.closeButton.innerHTML = 'Close';
+        this.closeButton.className = 'close-button';
+        this.closeButton.style.display = 'block';
+        this.closeButton.onclick = this.close.bind(this);
+    }
+    setBG(background) {
+        this.element.style.background = background;
+    }
+    add(element) {
+        this.element.appendChild(element);
+    }
+    empty() {
+        this.element.innerHTML = '';
     }
     open() {
         this.element.style.display = 'block';
@@ -23,8 +39,8 @@ class PopUp {
         }
     }
     setPosition(x, y) {
-        this.element.style.left = `${x}px`;
-        this.element.style.top = `${y}px`;
+        this.element.style.left = Number.isFinite(x.toString()) ? `${x}px` : x.toString();
+        this.element.style.top = Number.isFinite(y.toString()) ? `${y}px` : y.toString();
     }
     setFullScreen() {
         this.element.style.left = '50px';
