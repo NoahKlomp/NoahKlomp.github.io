@@ -758,6 +758,7 @@ class StartNode {
         this._element.appendChild(this._ellipseElement);
         this._element.appendChild(this._textElement);
         this._element.appendChild(this.line);
+        this._element.classList.add("prevent-select");
         parent.appendChild(this._element);
         requestAnimationFrame(() => {
             this.update();
