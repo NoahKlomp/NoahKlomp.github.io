@@ -128,6 +128,10 @@ class CodeContainer {
     }
 }
 class Code {
+    /*
+        TODO:
+          - Incomming arrow instead of first line
+     */
     constructor(parent, index, _innerElement = document.createElementNS(SVG_NS, "svg")) {
         this.parent = parent;
         this.index = index;
@@ -231,6 +235,10 @@ class Code {
     }
 }
 class StatementCode extends Code {
+    /*
+        TODO:
+          - Shape border?
+     */
     constructor(parent, index, text) {
         super(parent, index);
         this._textElement = document.createElementNS(SVG_NS, "text");
@@ -275,6 +283,11 @@ class StatementCode extends Code {
     }
 }
 class GeneralLoopCode extends Code {
+    /*
+        TODO:
+          - Add arrows to restart- and skip lines
+          - Add labels "True" and "False" for lines
+     */
     constructor(parent, index, type, text) {
         super(parent, index);
         this.type = type;
@@ -309,9 +322,9 @@ class GeneralLoopCode extends Code {
         this.loopBoxShape.setAttribute("fill", this.MAINBOX_COLOUR);
         this.loopBoxShape.setAttribute("stroke", this.parent.line_colour);
         this.loopBoxShape.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
+        this.loopBox.setAttribute("width", `${this.loopText.getBBox().width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+        this.loopBox.setAttribute("height", `${this.loopText.getBBox().height + 3 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
         this.loopBox.setAttribute("x", `${this.leftSpace - this.loopBox.getBBox().width / 2}`);
-        this.loopBox.setAttribute("width", `${this.loopBoxShape.getBBox().width}`);
-        this.loopBox.setAttribute("height", `${this.loopBoxShape.getBBox().height}`);
         this.skipLoopLine.setAttribute("fill", "none");
         this.skipLoopLine.setAttribute("stroke", "red");
         this.skipLoopLine.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
@@ -342,12 +355,12 @@ class GeneralLoopCode extends Code {
         const height = this.loopText.getBBox().height + 2 * CONFIG.TEXT_MARGIN;
         const width = this.loopText.getBBox().width + 2 * CONFIG.TEXT_MARGIN;
         return [
-            `0,0`,
-            `${width},0`,
-            `${width},${height}`,
+            `${CONFIG.LINE_WIDTH / 2},${CONFIG.LINE_WIDTH / 2}`,
+            `${width - CONFIG.LINE_WIDTH / 2},${CONFIG.LINE_WIDTH / 2}`,
+            `${width - CONFIG.LINE_WIDTH / 2},${height}`,
             `${width / 2},${height + CONFIG.TEXT_MARGIN}`,
-            `0,${height}`,
-            `0,0`
+            `${CONFIG.LINE_WIDTH / 2},${height - CONFIG.LINE_WIDTH / 2}`,
+            `${CONFIG.LINE_WIDTH / 2},${CONFIG.LINE_WIDTH / 2}`
         ].join(" ");
     }
     /**
@@ -357,8 +370,8 @@ class GeneralLoopCode extends Code {
      * @private
      */
     getSkipLinePoints() {
-        const heightLoopBox = this.loopBox.getBBox().height;
-        const widthLoopBox = this.loopBox.getBBox().width;
+        const heightLoopBox = this.loopBox.getBBox().height + CONFIG.LINE_WIDTH;
+        const widthLoopBox = this.loopBox.getBBox().width + CONFIG.LINE_WIDTH;
         const contentHeight = this.container.height;
         const contentWidth = this.width - (2 * CONFIG.SHAPE_MARGIN);
         const maxLeftSize = Math.max(widthLoopBox / 2, this.leftSpace);
@@ -366,7 +379,7 @@ class GeneralLoopCode extends Code {
             `${maxLeftSize - widthLoopBox / 2},${heightLoopBox / 2}`,
             `${CONFIG.LINE_WIDTH / 2},${heightLoopBox / 2}`,
             `${CONFIG.LINE_WIDTH / 2},${heightLoopBox / 2 + contentHeight + 2.5 * CONFIG.SHAPE_MARGIN + CONFIG.LINE_WIDTH}`,
-            `${maxLeftSize},${heightLoopBox / 2 + contentHeight + 2.5 * CONFIG.SHAPE_MARGIN + CONFIG.LINE_WIDTH}`
+            `${maxLeftSize},${heightLoopBox / 2 + contentHeight + 2.5 * CONFIG.SHAPE_MARGIN + CONFIG.LINE_WIDTH / 2}`
         ].join(" ");
     }
     /**
@@ -376,8 +389,8 @@ class GeneralLoopCode extends Code {
      * @private
      */
     getRestartLinePoints() {
-        const heightLoopBox = this.loopBox.getBBox().height;
-        const widthLoopBox = this.loopBox.getBBox().width;
+        const heightLoopBox = this.loopBox.getBBox().height + CONFIG.LINE_WIDTH;
+        const widthLoopBox = this.loopBox.getBBox().width + CONFIG.LINE_WIDTH;
         const contentHeight = this.container.height;
         const contentWidth = this.container.width;
         const maxRightSize = Math.max(widthLoopBox / 2, this.rightSpace);
@@ -385,8 +398,8 @@ class GeneralLoopCode extends Code {
         const maxWidth = Math.max(widthLoopBox, this.width);
         return [
             `${maxLeftSize},${heightLoopBox / 2 + contentHeight + 1.5 * CONFIG.SHAPE_MARGIN}`,
-            `${maxWidth - CONFIG.LINE_WIDTH},${heightLoopBox / 2 + contentHeight + 1.5 * CONFIG.SHAPE_MARGIN}`,
-            `${maxWidth - CONFIG.LINE_WIDTH},${heightLoopBox / 2}`,
+            `${maxWidth - CONFIG.LINE_WIDTH / 2},${heightLoopBox / 2 + contentHeight + 1.5 * CONFIG.SHAPE_MARGIN}`,
+            `${maxWidth - CONFIG.LINE_WIDTH / 2},${heightLoopBox / 2}`,
             `${widthLoopBox / 2 + maxLeftSize},${heightLoopBox / 2}`
         ].join(" ");
     }
@@ -401,11 +414,9 @@ class GeneralLoopCode extends Code {
         return this.leftSpace + this.rightSpace;
     }
     get height() {
-        return this.loopText.getBBox().height +
-            3 * CONFIG.TEXT_MARGIN +
-            3 * CONFIG.SHAPE_MARGIN +
-            CONFIG.LINE_WIDTH +
-            this.container.height;
+        return this.loopBox.getBBox().height + CONFIG.LINE_WIDTH +
+            this.container.height +
+            3 * CONFIG.SHAPE_MARGIN;
     }
     set text(newText) {
         this.loopText.innerHTML = newText.replace("\n", "<br/>");
@@ -438,6 +449,11 @@ class ForLoopCode extends GeneralLoopCode {
     }
 }
 class DoWhileLoop extends Code {
+    /*
+        TODO:
+          - Add arrows to restart line and after loop box
+          - Add labels to lines
+     */
     constructor(parent, index, text) {
         super(parent, index);
         this.doBox = document.createElementNS(SVG_NS, "svg");
@@ -580,19 +596,23 @@ class DoWhileLoop extends Code {
     }
 }
 class IfStatementCode extends Code {
+    /*
+        TODO:
+          - add labels 'True' and 'False'
+     */
     constructor(parent, index, text) {
         super(parent, index);
         this.ifBox = document.createElementNS(SVG_NS, "svg");
         this.ifBoxShape = document.createElementNS(SVG_NS, "polygon");
         this.textBox = document.createElementNS(SVG_NS, "text");
-        this.trueLine1 = document.createElementNS(SVG_NS, "polyline");
-        this.trueLine2 = document.createElementNS(SVG_NS, "polyline");
-        this.falseLine1 = document.createElementNS(SVG_NS, "polyline");
-        this.falseLine2 = document.createElementNS(SVG_NS, "polyline");
-        this.trueContent = new CodeContainer(this._innerElement, this);
-        this.trueContent.line_colour = "green";
-        this.falseContent = new CodeContainer(this._innerElement, this);
-        this.falseContent.line_colour = "red";
+        this._falseLine1 = document.createElementNS(SVG_NS, "polyline");
+        this._falseLine2 = document.createElementNS(SVG_NS, "polyline");
+        this._trueLine1 = document.createElementNS(SVG_NS, "polyline");
+        this._trueLine2 = document.createElementNS(SVG_NS, "polyline");
+        this._falseContent = new CodeContainer(this._innerElement, this);
+        this._falseContent.line_colour = "red";
+        this._trueContent = new CodeContainer(this._innerElement, this);
+        this._trueContent.line_colour = "green";
         this.ifBox.appendChild(this.ifBoxShape);
         this.ifBox.appendChild(this.textBox);
         this._innerElement.appendChild(this.ifBox);
@@ -607,11 +627,11 @@ class IfStatementCode extends Code {
         this.ifBox.ondblclick = this.ifBox.oncontextmenu = this.menuFunction.bind(this);
         this._outerElement.ondblclick = this._outerElement.oncontextmenu = () => {
         };
-        this.trueLine1.setAttribute("stroke", "green");
-        this.trueLine2.setAttribute("stroke", "green");
-        this.falseLine1.setAttribute("stroke", "red");
-        this.falseLine2.setAttribute("stroke", "red");
-        [this.trueLine1, this.trueLine2, this.falseLine1, this.falseLine2].forEach(line => {
+        this._falseLine1.setAttribute("stroke", "red");
+        this._falseLine2.setAttribute("stroke", "red");
+        this._trueLine1.setAttribute("stroke", "green");
+        this._trueLine2.setAttribute("stroke", "green");
+        [this._falseLine1, this._falseLine2, this._trueLine1, this._trueLine2].forEach(line => {
             this._innerElement.appendChild(line);
             line.setAttribute("fill", "none");
             line.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
@@ -628,14 +648,14 @@ class IfStatementCode extends Code {
         this.ifBox.setAttribute("x", `${this.leftSpace - ((this.textBox.getBBox().width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH) / 2)}`);
         this.arrangeContainers();
     }
-    getTrueLine1Points(heightIfBox, widthIfBox, widthTrue, heightTrue, widthFalse, heightFalse, yContent, xTrue, xFalse) {
+    get_FalseLine1Points(heightIfBox, widthIfBox, widthTrue, heightTrue, widthFalse, heightFalse, yContent, xTrue, xFalse) {
         return [
             `${this.leftSpace - widthIfBox / 2},${heightIfBox / 2}`,
             `${xTrue},${heightIfBox / 2}`,
             `${xTrue},${yContent}`
         ].join(" ");
     }
-    getTrueLine2Points(heightIfBox, widthIfBox, widthTrue, heightTrue, widthFalse, heightFalse, yContent, xTrue, xFalse) {
+    get_FalseLine2Points(heightIfBox, widthIfBox, widthTrue, heightTrue, widthFalse, heightFalse, yContent, xTrue, xFalse) {
         const maxLowY = Math.max(heightTrue, heightFalse) + yContent;
         return [
             `${xTrue},${yContent + heightTrue}`,
@@ -643,14 +663,14 @@ class IfStatementCode extends Code {
             `${this.leftSpace},${maxLowY + CONFIG.SHAPE_MARGIN}`
         ].join(" ");
     }
-    getFalseLine1Points(heightIfBox, widthIfBox, widthTrue, heightTrue, widthFalse, heightFalse, yContent, xTrue, xFalse) {
+    get_TrueLine1Points(heightIfBox, widthIfBox, widthTrue, heightTrue, widthFalse, heightFalse, yContent, xTrue, xFalse) {
         return [
             `${this.leftSpace + widthIfBox / 2},${heightIfBox / 2}`,
             `${xFalse},${heightIfBox / 2}`,
             `${xFalse},${yContent}`
         ].join(" ");
     }
-    getFalseLine2Points(heightIfBox, widthIfBox, widthTrue, heightTrue, widthFalse, heightFalse, yContent, xTrue, xFalse) {
+    get_TrueLine2Points(heightIfBox, widthIfBox, widthTrue, heightTrue, widthFalse, heightFalse, yContent, xTrue, xFalse) {
         const maxLowY = Math.max(heightTrue, heightFalse) + yContent;
         return [
             `${xFalse},${yContent + heightFalse}`,
@@ -663,13 +683,13 @@ class IfStatementCode extends Code {
      * @private
      */
     arrangeContainers() {
-        const heightIfBox = this.textBox.getBBox().height + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH, widthIfBox = this.textBox.getBBox().width + 2 * CONFIG.TEXT_MARGIN + 2 * CONFIG.LINE_WIDTH, widthTrue = this.trueContent.width, widthFalse = this.falseContent.width, heightTrue = this.trueContent.height, heightFalse = this.falseContent.height, yContent = heightIfBox + CONFIG.SHAPE_MARGIN, xTrue = this.trueContent.leftSpace, xFalse = this.width - this.falseContent.rightSpace;
-        this.trueContent.setTopMid(c(xTrue, yContent));
-        this.falseContent.setTopMid(c(xFalse, yContent));
-        this.falseLine1.setAttribute("points", this.getFalseLine1Points(heightIfBox, widthIfBox, widthTrue, heightTrue, widthFalse, heightFalse, yContent, xTrue, xFalse));
-        this.falseLine2.setAttribute("points", this.getFalseLine2Points(heightIfBox, widthIfBox, widthTrue, heightTrue, widthFalse, heightFalse, yContent, xTrue, xFalse));
-        this.trueLine1.setAttribute("points", this.getTrueLine1Points(heightIfBox, widthIfBox, widthTrue, heightTrue, widthFalse, heightFalse, yContent, xTrue, xFalse));
-        this.trueLine2.setAttribute("points", this.getTrueLine2Points(heightIfBox, widthIfBox, widthTrue, heightTrue, widthFalse, heightFalse, yContent, xTrue, xFalse));
+        const heightIfBox = this.textBox.getBBox().height + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH, widthIfBox = this.textBox.getBBox().width + 2 * CONFIG.TEXT_MARGIN + 2 * CONFIG.LINE_WIDTH, widthTrue = this._falseContent.width, widthFalse = this._trueContent.width, heightTrue = this._falseContent.height, heightFalse = this._trueContent.height, yContent = heightIfBox + CONFIG.SHAPE_MARGIN, xTrue = this._falseContent.leftSpace, xFalse = this.width - this._trueContent.rightSpace;
+        this._falseContent.setTopMid(c(xTrue, yContent));
+        this._trueContent.setTopMid(c(xFalse, yContent));
+        this._trueLine1.setAttribute("points", this.get_TrueLine1Points(heightIfBox, widthIfBox, widthTrue, heightTrue, widthFalse, heightFalse, yContent, xTrue, xFalse));
+        this._trueLine2.setAttribute("points", this.get_TrueLine2Points(heightIfBox, widthIfBox, widthTrue, heightTrue, widthFalse, heightFalse, yContent, xTrue, xFalse));
+        this._falseLine1.setAttribute("points", this.get_FalseLine1Points(heightIfBox, widthIfBox, widthTrue, heightTrue, widthFalse, heightFalse, yContent, xTrue, xFalse));
+        this._falseLine2.setAttribute("points", this.get_FalseLine2Points(heightIfBox, widthIfBox, widthTrue, heightTrue, widthFalse, heightFalse, yContent, xTrue, xFalse));
     }
     get width() {
         //TODO:
@@ -678,22 +698,22 @@ class IfStatementCode extends Code {
     }
     get rightSpace() {
         const minHalfSize = (this.textBox.getBBox().width + 4 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH + CONFIG.SHAPE_MARGIN) / 2;
-        if (this.falseContent.leftSpace + CONFIG.SHAPE_MARGIN < minHalfSize) {
-            return minHalfSize + this.falseContent.rightSpace + CONFIG.SHAPE_MARGIN;
+        if (this._trueContent.leftSpace + CONFIG.SHAPE_MARGIN < minHalfSize) {
+            return minHalfSize + this._trueContent.rightSpace + CONFIG.SHAPE_MARGIN;
         }
-        return this.falseContent.width + CONFIG.SHAPE_MARGIN;
+        return this._trueContent.width + CONFIG.SHAPE_MARGIN;
     }
     get leftSpace() {
         const minHalfSize = (this.textBox.getBBox().width + 4 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH + CONFIG.SHAPE_MARGIN) / 2;
-        if (this.trueContent.rightSpace + CONFIG.SHAPE_MARGIN < minHalfSize) {
-            return minHalfSize + this.trueContent.leftSpace + CONFIG.SHAPE_MARGIN;
+        if (this._falseContent.rightSpace + CONFIG.SHAPE_MARGIN < minHalfSize) {
+            return minHalfSize + this._falseContent.leftSpace + CONFIG.SHAPE_MARGIN;
         }
-        return this.trueContent.width + CONFIG.SHAPE_MARGIN;
+        return this._falseContent.width + CONFIG.SHAPE_MARGIN;
     }
     get export() {
         return {
             type: CodeType.IF,
-            content: Object.assign(Object.assign({}, emptyContent()), { "True": this.trueContent.export, "False": this.falseContent.export }),
+            content: Object.assign(Object.assign({}, emptyContent()), { "False": this._falseContent.export, "True": this._trueContent.export }),
             text: this.textBox.textContent ? this.textBox.textContent : ""
         };
     }
@@ -719,20 +739,20 @@ class IfStatementCode extends Code {
     }
     getContextMenuMap() {
         return super.getContextMenuMap()
-            .set("Add to start of false block", () => {
-            new Creator((e) => {
-                Creator.exportToCode(e, this.falseContent, 0);
-            });
-        })
-            .set("Clear false block", () => {
-            this.falseContent.clear();
-        })
             .set("Add to start of true block", () => {
             new Creator((e) => {
-                Creator.exportToCode(e, this.trueContent, 0);
+                Creator.exportToCode(e, this._trueContent, 0);
             });
-        }).set("Clear true block", () => {
-            this.trueContent.clear();
+        })
+            .set("Clear true block", () => {
+            this._trueContent.clear();
+        })
+            .set("Add to start of false block", () => {
+            new Creator((e) => {
+                Creator.exportToCode(e, this._falseContent, 0);
+            });
+        }).set("Clear false block", () => {
+            this._falseContent.clear();
         });
     }
 }
@@ -741,28 +761,68 @@ class IfStatementCode extends Code {
  * should only occur once per flowchart
  */
 class StartNode {
-    constructor(parent, container) {
+    get _element() {
+        return document.querySelector(`#startNode_${this.id}`) || (() => {
+            const el = document.createElementNS(SVG_NS, "svg");
+            el.setAttribute("id", `startNode_${this.id}`);
+            el.setAttribute("class", "start-node");
+            el.classList.add("prevent-select");
+            el.appendChild(this._ellipseElement);
+            el.appendChild(this._textElement);
+            el.appendChild(this.line);
+            return el;
+        })();
+    }
+    get _textElement() {
+        return document.querySelector(`#textElement_${this.id}`) || (() => {
+            const el = document.createElementNS(SVG_NS, "text");
+            el.id = `textElement_${this.id}`;
+            el.classList.add("textElement");
+            el.classList.add("StartNode_text");
+            el.textContent = "Start";
+            el.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
+            el.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
+            el.setAttribute("text-anchor", "start");
+            el.setAttribute("dominant-baseline", "hanging");
+            return el;
+        })();
+    }
+    get _ellipseElement() {
+        return document.querySelector(`#ellipseElement_${this.id}`) || (() => {
+            const el = document.createElementNS(SVG_NS, "ellipse");
+            el.id = `ellipseElement_${this.id}`;
+            el.setAttribute("fill", CONFIG.MAIN_SHAPE_COLOUR);
+            return el;
+        })();
+    }
+    get line() {
+        return document.querySelector(`#low_line_${this.id}`) || (() => {
+            const el = document.createElementNS(SVG_NS, "line");
+            el.id = `low_line_${this.id}`;
+            return el;
+        })();
+    }
+    get parent() {
+        return document.querySelector(`#${this.parentID}`) || (() => {
+            const el = document.createElementNS(SVG_NS, "svg");
+            el.setAttribute("id", `${this.parentID}`);
+            document.body.appendChild(el);
+            return el;
+        })();
+    }
+    constructor(parentID, container) {
+        this.parentID = parentID;
         this.container = container;
-        this._element = document.createElementNS(SVG_NS, "svg");
-        this._textElement = document.createElementNS(SVG_NS, "text");
-        this._ellipseElement = document.createElementNS(SVG_NS, "ellipse");
-        this.line = document.createElementNS(SVG_NS, "line");
-        this._element.setAttribute("id", `startNode_${ids.get()}`);
-        this._element.setAttribute("class", "start-node");
-        this._textElement.textContent = "Start";
-        this._textElement.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
-        this._textElement.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
-        this._textElement.setAttribute("text-anchor", "start");
-        this._textElement.setAttribute("dominant-baseline", "hanging");
-        this._ellipseElement.setAttribute("fill", CONFIG.MAIN_SHAPE_COLOUR);
+        // public readonly _element: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
+        // private _textElement: SVGTextElement = document.createElementNS(SVG_NS, "text");
+        // private _ellipseElement: SVGEllipseElement = document.createElementNS(SVG_NS, "ellipse");
+        // public readonly line: SVGLineElement = document.createElementNS(SVG_NS, "line");
+        this.id = ids.get();
         this._element.appendChild(this._ellipseElement);
         this._element.appendChild(this._textElement);
         this._element.appendChild(this.line);
-        this._element.classList.add("prevent-select");
-        parent.appendChild(this._element);
-        requestAnimationFrame(() => {
-            this.update();
-        });
+        this.parent.appendChild(this._element);
+        requestAnimationFrame(this.update.bind(this));
     }
     get width() {
         return this._textElement.getBBox().width + 2 * CONFIG.TEXT_MARGIN;
@@ -814,26 +874,75 @@ class StartNode {
  * should only occur once per flowchart
  */
 class EndNode {
-    constructor(parent) {
-        this._element = document.createElementNS(SVG_NS, "svg");
-        this._textElement = document.createElementNS(SVG_NS, "text");
-        this._ellipseElement = document.createElementNS(SVG_NS, "ellipse");
-        this.line = document.createElementNS(SVG_NS, "line");
-        this._element.setAttribute("id", `endNode_${ids.get()}`);
-        this._element.setAttribute("class", "end-node");
-        this._textElement.textContent = "End";
-        this._textElement.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
-        this._textElement.setAttribute("y", `${CONFIG.TEXT_MARGIN + CONFIG.SHAPE_MARGIN}`);
-        this._textElement.setAttribute("text-anchor", "start");
-        this._textElement.setAttribute("dominant-baseline", "hanging");
-        this._ellipseElement.setAttribute("fill", CONFIG.MAIN_SHAPE_COLOUR);
+    get _element() {
+        return document.querySelector(`#endNode_${this.id}`) || (() => {
+            const el = document.createElementNS(SVG_NS, "svg");
+            el.setAttribute("id", `endNode_${this.id}`);
+            el.setAttribute("class", "end-node");
+            el.classList.add("prevent-select");
+            el.appendChild(this._ellipseElement);
+            el.appendChild(this._textElement);
+            el.appendChild(this.line);
+            return el;
+        })();
+    }
+    get _textElement() {
+        return document.querySelector(`#textElement_${this.id}`) || (() => {
+            const el = document.createElementNS(SVG_NS, "text");
+            el.id = `textElement_${this.id}`;
+            el.classList.add("textElement");
+            el.classList.add("EndNode_text");
+            el.textContent = "End";
+            el.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
+            el.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
+            el.setAttribute("text-anchor", "start");
+            el.setAttribute("dominant-baseline", "hanging");
+            return el;
+        })();
+    }
+    get _ellipseElement() {
+        return document.querySelector(`#ellipseElement_${this.id}`) || (() => {
+            const el = document.createElementNS(SVG_NS, "ellipse");
+            el.id = `ellipseElement_${this.id}`;
+            el.setAttribute("fill", CONFIG.MAIN_SHAPE_COLOUR);
+            return el;
+        })();
+    }
+    get line() {
+        return document.querySelector(`#low_line_${this.id}`) || (() => {
+            const el = document.createElementNS(SVG_NS, "line");
+            el.id = `low_line_${this.id}`;
+            return el;
+        })();
+    }
+    get parent() {
+        return document.querySelector(`#${this.parentID}`) || (() => {
+            const el = document.createElementNS(SVG_NS, "svg");
+            el.setAttribute("id", `${this.parentID}`);
+            document.body.appendChild(el);
+            return el;
+        })();
+    }
+    constructor(parentID) {
+        this.parentID = parentID;
+        this.id = ids.get();
+        // this._element.setAttribute("id", `endNode_${ids.get()}`);
+        // this._element.setAttribute("class", "end-node");
+        // this._textElement.textContent = "End";
+        // this._textElement.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
+        // this._textElement.setAttribute("y", `${CONFIG.TEXT_MARGIN + CONFIG.SHAPE_MARGIN}`);
+        // this._textElement.setAttribute("text-anchor", "start");
+        // this._textElement.setAttribute("dominant-baseline", "hanging");
+        // this._ellipseElement.setAttribute("fill", CONFIG.MAIN_SHAPE_COLOUR);
+        // this._element.appendChild(this._ellipseElement);
+        // this._element.appendChild(this._textElement);
+        // this._element.appendChild(this.line);
+        // parent.appendChild(this._element);
         this._element.appendChild(this._ellipseElement);
         this._element.appendChild(this._textElement);
         this._element.appendChild(this.line);
-        parent.appendChild(this._element);
-        requestAnimationFrame(() => {
-            this.update();
-        });
+        this.parent.appendChild(this._element);
+        requestAnimationFrame(this.update.bind(this));
     }
     get width() {
         return this._textElement.getBBox().width + 2 * CONFIG.TEXT_MARGIN;
@@ -867,11 +976,14 @@ class EndNode {
 class Main {
     constructor(bodyElement) {
         this.SVG = document.createElementNS(SVG_NS, "svg");
+        this.id = ids.get();
         this.container = new CodeContainer(this.SVG, this);
-        this.startNode = new StartNode(this.SVG, this.container);
-        this.endNode = new EndNode(this.SVG);
         bodyElement.appendChild(this.SVG); // Attach to DOM for rendering
-        this.init();
+        this.SVG.setAttribute("id", `mainCode_${this.id}`);
+        this.startNode = new StartNode(`mainCode_${this.id}`, this.container);
+        this.endNode = new EndNode(`mainCode_${this.id}`);
+        requestAnimationFrame(this.init.bind(this));
+        // this.init();
     }
     init() {
         this.container.update();
@@ -887,24 +999,50 @@ class Main {
         this.endNode.updateTopMid(c(middle, this.startNode._element.getBBox().height + this.container.height));
         this.SVG.setAttribute("width", `${width}`);
         this.SVG.setAttribute("height", `${this.container.height + this.startNode._element.getBBox().height + this.endNode._element.getBBox().height}`);
+        updateURLParams({ init: JSON.stringify(this.export) });
     }
     get programTitle() {
         return "Main Program";
     }
     get export() {
         return {
-            type: CodeType.MAIN,
-            content: {
-                "MainCode": this.container.export
-            },
-            text: this.programTitle
+            type: "Program",
+            content: this.container.export,
+            name: this.programTitle,
+            functions: [] //TODO: implement functions here
         };
     }
 }
 let main;
 function init() {
     main = new Main(document.body);
+    try {
+        const url = new URLSearchParams(window.location.search);
+        if (url.has("init")) {
+            const content = JSON.parse(url.get("init") || "{}");
+            if (content.type == "Program") {
+                content.content.forEach((code, i) => {
+                    Creator.exportToCode(code, main.container, i);
+                });
+            }
+            else
+                throw Error();
+        }
+        else
+            throw Error();
+    }
+    catch (_a) {
+    }
 }
 function exportAll() {
     return JSON.stringify(main.export);
+}
+function updateURLParams(params) {
+    const searchParams = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+        if (value)
+            searchParams.set(key, value); // Only set non-empty values
+    }
+    const newURL = `${window.location.pathname}?${searchParams.toString()}`;
+    history.pushState(params, '', newURL); // Update URL without reloading
 }

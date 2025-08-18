@@ -2,6 +2,11 @@ class Creator extends PopUp {
     private form: HTMLFormElement = document.createElement('form');
     private types: HTMLSelectElement = document.createElement('select');
 
+
+    /*
+        TODO:
+          - Add layout
+     */
     /**
      * Creates an instance of Creator.
      * This constructor is protected to prevent direct instantiation.
@@ -12,12 +17,18 @@ class Creator extends PopUp {
         this.add(this.form);
         this.form.appendChild(this.types);
 
+        let thing = document.createElement("option");
+        thing.textContent = "select";
+        thing.disabled = true;
+        this.types.appendChild(thing);
+
         for (let t in CodeType) {
-            if (t === CodeType.FUNCTION || t === CodeType.MAIN)
-                continue;
-            let thing = document.createElement("option");
-            thing.textContent = t;
-            this.types.appendChild(thing);
+            if (!(t == "FUNCTION" || t == "MAIN")) {
+                let thing = document.createElement("option");
+                thing.textContent = t;
+                this.types.appendChild(thing);
+            }
+
         }
         this.types.value = "select";
         this.types.onchange = (e) => {
@@ -35,7 +46,13 @@ class Creator extends PopUp {
                         doAfter({
                             type: CodeType.WHILE,
                             content: {
-                                Looped: []
+                                Looped: [
+                                    {
+                                        type: CodeType.STATEMENT,
+                                        content: {},
+                                        text: "Empty Statement"
+                                    }
+                                ]
                             },
                             text: "empty condition"
                         });
@@ -44,7 +61,13 @@ class Creator extends PopUp {
                         doAfter({
                             type: CodeType.FOR,
                             content: {
-                                Looped: []
+                                Looped: [
+                                    {
+                                        type: CodeType.STATEMENT,
+                                        content: {},
+                                        text: "Empty Statement"
+                                    }
+                                ]
                             },
                             text: "empty iteration"
                         });
@@ -53,7 +76,13 @@ class Creator extends PopUp {
                         doAfter({
                             type: CodeType.DO_WHILE,
                             content: {
-                                Looped: []
+                                Looped: [
+                                    {
+                                        type: CodeType.STATEMENT,
+                                        content: {},
+                                        text: "Empty Statement"
+                                    }
+                                ]
                             },
                             text: "empty condition"
                         });
@@ -62,7 +91,13 @@ class Creator extends PopUp {
                         doAfter({
                             type: CodeType.FUNCTION,
                             content: {
-                                FunctionDefinition: []
+                                FunctionDefinition: [
+                                    {
+                                        type: CodeType.STATEMENT,
+                                        content: {},
+                                        text: "Empty Statement"
+                                    }
+                                ]
                             },
                             text: "empty condition"
                         });
@@ -71,8 +106,20 @@ class Creator extends PopUp {
                         doAfter({
                             type: CodeType.IF,
                             content: {
-                                True: [],
-                                False: []
+                                True: [
+                                    {
+                                        type: CodeType.STATEMENT,
+                                        content: {},
+                                        text: "Empty Statement"
+                                    }
+                                ],
+                                False: [
+                                    {
+                                        type: CodeType.STATEMENT,
+                                        content: {},
+                                        text: "Empty Statement"
+                                    }
+                                ]
                             },
                             text: "empty condition"
                         });
@@ -101,6 +148,7 @@ class Creator extends PopUp {
                         });
                         return element;
                     }
+
                 }
                 throw new InvalidExportError("Cannot obtain Looped content");
 
@@ -131,19 +179,31 @@ class Creator extends PopUp {
                     if (export1.content["True"] && export1.content["False"]) {
                         const element = new IfStatementCode(parent, index, export1.text);
                         export1.content['True'].forEach((value, i) => {
-                            Creator.exportToCode(value, element.trueContent, i);
+                            Creator.exportToCode(value, element._falseContent, i);
                         });
                         export1.content['False'].forEach((value, i) => {
-                            Creator.exportToCode(value, element.falseContent, i);
+                            Creator.exportToCode(value, element._trueContent, i);
                         });
                         return element;
                     }
                 }
                 throw new InvalidExportError("Cannot obtain True and False content");
+
             default:
                 throw new InvalidExportError("Given Export is not readable, export:" + export1);
 
         }
+    }
+    static programExportToMain(pe:ProgramExport, parentElement: HTMLElement): Main {
+        const m = new Main(parentElement);
+        const titleEl = document.querySelector("title")
+        if (titleEl) {
+            titleEl.innerHTML = pe.name;
+        }
+        pe.content.forEach((value, i) => {
+            Creator.exportToCode(value, m.container, i);
+        })
+        return m;
     }
 }
 
