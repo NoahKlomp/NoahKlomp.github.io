@@ -364,7 +364,7 @@ class StatementCode extends Code {
         this._textElement.innerHTML = newText.replace("\n","<br/>");
         requestAnimationFrame(()=>{
             this.textbbox = this._textElement.getBBox();
-            this.update.bind(this);
+            this.update();
 
         });
     }
