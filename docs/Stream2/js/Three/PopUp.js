@@ -5,6 +5,8 @@ class PopUp {
         this.closeButton = document.createElement('a');
         this.element.className = 'pop-up';
         this.element.style.position = 'fixed';
+        this.element.style.left = "50px";
+        this.element.style.top = "50px";
         this.element.style.zIndex = '1000';
         this.element.style.backgroundColor = '#fff';
         this.element.style.border = '1px solid #ccc';
