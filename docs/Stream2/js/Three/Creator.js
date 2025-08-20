@@ -128,7 +128,8 @@ class Creator extends PopUp {
                 this.close();
             }
         };
-        this.setFullScreen();
+        this.setSize("300", "300");
+        this.setPosition("50", 50);
         this.open();
     }
     static exportToCode(export1, parent, index) {

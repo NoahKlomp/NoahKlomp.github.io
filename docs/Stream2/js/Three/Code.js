@@ -58,36 +58,90 @@ const ids = {
         return this.current++;
     }
 };
+class ConnectingLine {
+    constructor(parent, index) {
+        this.parent = parent;
+        this.index = index;
+        this.line = document.createElementNS(SVG_NS, "polyline");
+        this.id = ids.get();
+        this.line.id = `line_for_${parent.id}_${this.id}`;
+        parent.view.appendChild(this.line);
+        this.line.setAttribute("marker-mid", "url(#arrow)");
+        this.line.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
+        this.setColour(CONFIG.LINE_COLOUR);
+        this.line.ondblclick = this.line.oncontextmenu = this.menuFunction.bind(this);
+    }
+    setMid(cor) {
+        this.line.setAttribute("points", `${cor.x},${cor.y} 
+        ${cor.x},${cor.y + CONFIG.SHAPE_MARGIN / 2} 
+        ${cor.x},${cor.y + CONFIG.SHAPE_MARGIN}`);
+        return this;
+    }
+    setColour(newColour) {
+        this.line.setAttribute("stroke", newColour);
+        return this;
+    }
+    remove() {
+        this.line.remove();
+    }
+    menuFunction(e) {
+        e.preventDefault();
+        const map = this.getContextMenuMap();
+        CustomMenu.show(e.pageX, e.pageY, map);
+    }
+    ;
+    getContextMenuMap() {
+        const parent = this.parent;
+        const map = new Map();
+        map.set("Add here", (() => {
+            new Creator((e) => {
+                Creator.exportToCode(e, this.parent, this.index);
+            });
+        }));
+        return map;
+    }
+}
 class CodeContainer {
     constructor(parentElement, parent) {
         this.parentElement = parentElement;
         this.parent = parent;
         this.content = [];
         this.view = document.createElementNS(SVG_NS, "svg");
-        this.line_colour = CONFIG.LINE_COLOUR;
+        this.lines = [new ConnectingLine(this, 0)];
+        this._line_colour = CONFIG.LINE_COLOUR;
+        this.id = ids.get();
         parentElement.appendChild(this.view);
-        this.view.setAttribute("id", `${ids.get()}`);
+        this.view.setAttribute("id", `container_${this.id}`);
         this.view.setAttribute("class", "code-container");
+        requestAnimationFrame(this.update.bind(this));
     }
-    get id() {
-        return this.view.getAttribute("id");
+    get line_colour() {
+        return this._line_colour;
+    }
+    set line_colour(new_colour) {
+        this._line_colour = new_colour;
+        this.lines.forEach((line) => { line.setColour(new_colour); });
     }
     get width() {
-        return Math.max(0, ...this.content.map((i) => i.width));
+        return Math.max(4 * CONFIG.LINE_WIDTH, ...this.content.map((i) => i.width));
     }
     get leftSpace() {
-        return Math.max(0, ...this.content.map((i) => i.leftSpace));
+        return Math.max(2 * CONFIG.LINE_WIDTH, ...this.content.map((i) => i.leftSpace));
     }
     get rightSpace() {
-        return Math.max(0, ...this.content.map((i) => i.rightSpace));
+        return Math.max(2 * CONFIG.LINE_WIDTH, ...this.content.map((i) => i.rightSpace));
     }
     get height() {
-        return this.content.map(e => e.height).reduce((p, c) => p + c, 0);
+        return this.content.map(e => e.height).reduce((p, c) => p + c + CONFIG.SHAPE_MARGIN, CONFIG.SHAPE_MARGIN);
     }
     get export() {
         return this.content.map(c => c.export);
     }
     add(newCode, index) {
+        if (index < 0 || index > this.content.length) {
+            throw new Error("Index out of bounds");
+        }
+        this.lines.splice(index, 0, new ConnectingLine(this, index));
         this.content.splice(index, 0, newCode);
         newCode.addTo(this.view);
         newCode.update();
@@ -97,24 +151,29 @@ class CodeContainer {
             throw new Error("Index out of bounds");
         }
         const removed = this.content.splice(index, 1)[0];
-        removed._outerElement.remove();
+        this.lines.splice(index, 1)[0].remove();
+        removed._innerElement.remove();
         this.update();
     }
     update() {
         let newY = 0;
         this.content.forEach((e, i) => {
             e.index = i;
+            this.lines[i].index = i;
         });
+        this.lines[this.content.length].index = this.content.length;
         const middle = this.leftSpace;
-        for (const e of this.content) {
+        this.content.forEach((e, i) => {
+            this.lines[i].setMid(c(middle, newY));
+            newY += CONFIG.SHAPE_MARGIN;
             e.setTopMid(c(middle, newY));
             newY += e.height;
-        }
+        });
+        this.lines[this.content.length].setMid(c(middle, newY));
+        newY += CONFIG.SHAPE_MARGIN;
         this.view.setAttribute("height", `${newY}`);
         this.view.setAttribute("width", `${this.width}`);
         requestAnimationFrame(this.parent.update.bind(this.parent));
-        // TODO:
-        //  - let CodeContainer handle line drawing
     }
     setTopMid(coords) {
         this.view.setAttribute("x", `${coords.x - this.leftSpace}`);
@@ -129,35 +188,21 @@ class CodeContainer {
 class Code {
     /*
         TODO:
-          - Incomming arrow instead of first line
+          - Incoming arrow instead of first line
      */
     constructor(parent, index, _innerElement = document.createElementNS(SVG_NS, "svg")) {
         this.parent = parent;
         this.index = index;
         this._innerElement = _innerElement;
-        this._outerElement = document.createElementNS(SVG_NS, "svg");
         this.id = ids.get();
         this.lines = [];
         this._innerElement.setAttribute("x", `${0}`);
         this._innerElement.setAttribute("y", `${CONFIG.SHAPE_MARGIN}`);
         this._innerElement.setAttribute("id", `${this.constructor.name}_inner_${this.id}`);
-        this._outerElement.classList.add(`${this.constructor.name}`);
-        this._outerElement.setAttribute("id", `${this.constructor.name}_outer_${this.id}`);
-        this._outerElement.appendChild(this._innerElement);
-        this._outerElement.classList.add("prevent-select");
-        this._outerElement.oncontextmenu =
-            this._outerElement.ondblclick = this.menuFunction.bind(this);
+        this._innerElement.classList.add(`${this.constructor.name}`);
+        this._innerElement.oncontextmenu =
+            this._innerElement.ondblclick = this.menuFunction.bind(this);
         requestAnimationFrame(() => {
-            this.lines.push(document.createElementNS(SVG_NS, "line"));
-            this.lines.push(document.createElementNS(SVG_NS, "line"));
-            this.lines[0].setAttribute("id", `${this.constructor.name}_line1_${this.id}`);
-            this.lines[1].setAttribute("id", `${this.constructor.name}_line2_${this.id}`);
-            this.lines[0].setAttribute("stroke", `${parent.line_colour}`);
-            this.lines[0].setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
-            this.lines[1].setAttribute("stroke", `${parent.line_colour}`);
-            this.lines[1].setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
-            this.lines[0].setAttribute("marker-end", "url(#arrowEnd)");
-            this.lines.forEach(l => this._outerElement.appendChild(l));
             parent.add(this, index);
             requestAnimationFrame(() => {
                 this.update();
@@ -197,7 +242,7 @@ class Code {
     }
     ;
     get height() {
-        return this.innerHeight + CONFIG.SHAPE_MARGIN * 2;
+        return this.innerHeight;
     }
     get leftSpace() {
         return this.width / 2;
@@ -208,16 +253,6 @@ class Code {
     update() {
         this.innerUpdate();
         requestAnimationFrame(() => {
-            this.lines.forEach((l) => {
-                l.setAttribute("x1", `${this.leftSpace}`);
-                l.setAttribute("x2", `${this.leftSpace}`);
-            });
-            this.lines[0].setAttribute("y1", `${0}`);
-            this.lines[0].setAttribute("y2", `${CONFIG.SHAPE_MARGIN}`);
-            this.lines[1].setAttribute("y1", `${CONFIG.SHAPE_MARGIN + this.innerHeight}`);
-            this.lines[1].setAttribute("y2", `${2 * CONFIG.SHAPE_MARGIN + this.innerHeight}`);
-            this._outerElement.setAttribute("height", `${this.height}`);
-            this._outerElement.setAttribute("width", `${this.width}`);
             requestAnimationFrame(() => {
                 this.parent.update();
             });
@@ -226,12 +261,12 @@ class Code {
     ;
     setTopMid(coords) {
         requestAnimationFrame(() => {
-            this._outerElement.setAttribute("x", `${coords.x - this.leftSpace}`);
-            this._outerElement.setAttribute("y", `${coords.y}`);
+            this._innerElement.setAttribute("x", `${coords.x - this.leftSpace}`);
+            this._innerElement.setAttribute("y", `${coords.y}`);
         });
     }
     addTo(parentElement) {
-        parentElement.appendChild(this._outerElement);
+        parentElement.appendChild(this._innerElement);
     }
 }
 class StatementCode extends Code {
@@ -316,7 +351,7 @@ class GeneralLoopCode extends Code {
         this._innerElement.appendChild(this.skipLoopLine);
         this._innerElement.appendChild(this.restartLoopLine);
         this.loopBox.ondblclick = this.loopBox.oncontextmenu = this.menuFunction.bind(this);
-        this._outerElement.ondblclick = this._outerElement.oncontextmenu = (e) => { };
+        this._innerElement.ondblclick = this._innerElement.oncontextmenu = (e) => { };
         requestAnimationFrame(() => {
             this.update();
         });
@@ -510,7 +545,7 @@ class DoWhileLoop extends Code {
         this.loopText.setAttribute("y", `${CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
         this.loopBox.ondblclick = this.loopBox.oncontextmenu = this.menuFunction.bind(this);
         this.doBox.ondblclick = this.doBox.oncontextmenu = this.menuFunction.bind(this);
-        this._outerElement.ondblclick = this._outerElement.oncontextmenu = (e) => { };
+        this._innerElement.ondblclick = this._innerElement.oncontextmenu = (e) => { };
         this._innerElement.appendChild(this.restartLine);
         this._innerElement.classList.add("DoWhileLoop");
         requestAnimationFrame(() => {
@@ -518,6 +553,8 @@ class DoWhileLoop extends Code {
             this.textBBox = this.loopText.getBBox();
             this.loopShape.setAttribute("points", this.getLoopBoxPoints());
             this.doShape.setAttribute("points", this.getDoBoxPoints());
+            this.doBox.setAttribute("width", `${this.doTextBBox.width + 4 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+            this.doBox.setAttribute("height", `${this.doTextBBox.height + 4 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
             requestAnimationFrame(() => {
                 this.doBBox = this.doBox.getBBox();
                 this.loopBBox = this.loopBox.getBBox();
@@ -532,13 +569,12 @@ class DoWhileLoop extends Code {
         // const hDo: number = this.doText.getBBox().height + 4 * CONFIG.TEXT_MARGIN + 2 * CONFIG.LINE_WIDTH;
         const wLoop = this.loopBBox.width + 2 * CONFIG.LINE_WIDTH;
         const hLoop = this.loopBBox.height + 2 * CONFIG.LINE_WIDTH;
-        const wDo = this.doBBox.width + 2 * CONFIG.LINE_WIDTH;
+        const wDo = (this.doTextBBox.width + 4 * CONFIG.TEXT_MARGIN) + 2 * CONFIG.LINE_WIDTH;
         const hDo = this.doBBox.height + 2 * CONFIG.LINE_WIDTH;
         const cPoint = Math.max(0, wLoop / 2, wDo / 2, this.container.leftSpace);
+        this.loopShape.setAttribute("points", this.getLoopBoxPoints());
         this.doBox.setAttribute("x", `${cPoint - wDo / 2}`);
         this.doBox.setAttribute("y", `${0}`);
-        this.doBox.setAttribute("width", `${this.doText.getBBox().width + 4 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
-        this.doBox.setAttribute("height", `${this.doText.getBBox().height + 4 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
         this.container.setTopMid(c(cPoint, hDo));
         this.loopBox.setAttribute("x", `${cPoint - wLoop / 2}`);
         this.loopBox.setAttribute("y", `${hDo + this.container.height}`);
@@ -560,8 +596,8 @@ class DoWhileLoop extends Code {
         return this.loopText.textContent || "";
     }
     getDoBoxPoints() {
-        const height = this.textBBox.height + 4 * CONFIG.TEXT_MARGIN;
-        const width = this.textBBox.width + 4 * CONFIG.TEXT_MARGIN;
+        const height = this.doTextBBox.height + 4 * CONFIG.TEXT_MARGIN;
+        const width = this.doTextBBox.width + 4 * CONFIG.TEXT_MARGIN;
         return [
             `${CONFIG.LINE_WIDTH},${CONFIG.LINE_WIDTH}`,
             `${width - CONFIG.LINE_WIDTH},${CONFIG.LINE_WIDTH}`,
@@ -656,7 +692,7 @@ class IfStatementCode extends Code {
         this.ifBoxShape.setAttribute("stroke", this.parent.line_colour);
         this.ifBoxShape.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
         this.ifBox.ondblclick = this.ifBox.oncontextmenu = this.menuFunction.bind(this);
-        this._outerElement.ondblclick = this._outerElement.oncontextmenu = () => {
+        this._innerElement.ondblclick = this._innerElement.oncontextmenu = () => {
         };
         this._falseLine1.setAttribute("stroke", "red");
         this._falseLine2.setAttribute("stroke", "red");
@@ -666,10 +702,10 @@ class IfStatementCode extends Code {
             this._innerElement.appendChild(line);
             line.setAttribute("fill", "none");
             line.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
-            line.setAttribute("marker-start", "url(#arrowStart)");
         });
+        [this._trueLine1, this._falseLine1].forEach(line => line.setAttribute("marker-start", "url(#arrowStart)"));
         this.ifBox.ondblclick = this.ifBox.oncontextmenu = this.menuFunction.bind(this);
-        this._outerElement.ondblclick = this._outerElement.oncontextmenu = (e) => {
+        this._innerElement.ondblclick = this._innerElement.oncontextmenu = (e) => {
         };
         requestAnimationFrame(() => {
             this.textBBox = this.textBox.getBBox();
@@ -718,7 +754,7 @@ class IfStatementCode extends Code {
      * @private
      */
     arrangeContainers() {
-        const heightIfBox = this.textBBox.height + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH, widthIfBox = this.textBBox.width + 2 * CONFIG.TEXT_MARGIN + 2 * CONFIG.LINE_WIDTH, widthTrue = this._falseContent.width, widthFalse = this._trueContent.width, heightTrue = this._falseContent.height, heightFalse = this._trueContent.height, yContent = heightIfBox + CONFIG.SHAPE_MARGIN, xTrue = this._falseContent.leftSpace, xFalse = this.width - this._trueContent.rightSpace;
+        const heightIfBox = this.textBBox.height + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH, widthIfBox = this.textBBox.width + 2 * CONFIG.TEXT_MARGIN /*+ 2 * CONFIG.LINE_WIDTH*/, widthTrue = this._falseContent.width, widthFalse = this._trueContent.width, heightTrue = this._falseContent.height, heightFalse = this._trueContent.height, yContent = heightIfBox + CONFIG.SHAPE_MARGIN, xTrue = this._falseContent.leftSpace, xFalse = this.width - this._trueContent.rightSpace;
         this._falseContent.setTopMid(c(xTrue, yContent));
         this._trueContent.setTopMid(c(xFalse, yContent));
         this._trueLine1.setAttribute("points", this.get_TrueLine1Points(heightIfBox, widthIfBox, widthTrue, heightTrue, widthFalse, heightFalse, yContent, xTrue, xFalse));
@@ -948,14 +984,14 @@ class Main {
         bodyElement.appendChild(this.SVG); // Attach to DOM for rendering
         this.SVG.setAttribute("id", `mainCode_${this.id}`);
         this.SVG.innerHTML += `<defs>
-    <marker id="circle" markerWidth="8" markerHeight="8" refX="5" refY="5">
-      <circle cx="5" cy="5" r="3" fill="black" />
+    <marker id="arrow" markerWidth="${CONFIG.LINE_WIDTH}" markerHeight="${CONFIG.LINE_WIDTH}" refX="${CONFIG.LINE_WIDTH / 2}" refY="${CONFIG.LINE_WIDTH / 2}" orient="auto">
+      <path d="M 0 0 L ${CONFIG.LINE_WIDTH} ${CONFIG.LINE_WIDTH / 2} L 0 ${CONFIG.LINE_WIDTH} z" />
     </marker>
-    <marker id="arrowEnd" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">
-      <path d="M 0 0 L 5 2.5 L 0 5 z" fill="black" />
+    <marker id="arrowEnd" markerWidth="${CONFIG.LINE_WIDTH}" markerHeight="${CONFIG.LINE_WIDTH}" refX="${CONFIG.LINE_WIDTH}" refY="${CONFIG.LINE_WIDTH / 2}" orient="auto">
+      <path d="M 0 0 L ${CONFIG.LINE_WIDTH} ${CONFIG.LINE_WIDTH / 2} L 0 ${CONFIG.LINE_WIDTH} z" fill="black" />
     </marker>
-    <marker id="arrowStart" markerWidth="5" markerHeight="5" refX="0" refY="2.5" orient="auto">
-      <path d="M 0 0 L 5 2.5 L 0 5 z" fill="black" />
+    <marker id="arrowStart" markerWidth="${CONFIG.LINE_WIDTH}" markerHeight="${CONFIG.LINE_WIDTH}" refX="0" refY="${CONFIG.LINE_WIDTH / 2}" orient="auto">
+      <path d="M 0 0 L ${CONFIG.LINE_WIDTH} ${CONFIG.LINE_WIDTH / 2} L 0 ${CONFIG.LINE_WIDTH} z" fill="black" />
     </marker>
   </defs>`;
         this.container = new CodeContainer(this.SVG, this);
@@ -970,7 +1006,7 @@ class Main {
         this.endNode.update();
     }
     update() {
-        this.container.update();
+        // this.container.update();
         const middle = Math.max(this.startNode._element.getBBox().width / 2, this.container.leftSpace);
         const width = Math.max(this.startNode._element.getBBox().width, this.container.width);
         this.startNode.updateTopMid(c(middle, 0));

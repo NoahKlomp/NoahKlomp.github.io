@@ -107,35 +107,88 @@ interface Updatable {
     update(): void;
 }
 
+
+class ConnectingLine {
+    private line: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
+    public readonly id: number = ids.get();
+    constructor(private parent: CodeContainer, public index:number) {
+        this.line.id = `line_for_${parent.id}_${this.id}`;
+        parent.view.appendChild(this.line);
+        this.line.setAttribute("marker-mid", "url(#arrow)");
+        this.line.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
+        this.setColour(CONFIG.LINE_COLOUR);
+        this.line.ondblclick = this.line.oncontextmenu = this.menuFunction.bind(this);
+    }
+    setMid(cor: Coordinates): ConnectingLine {
+        this.line.setAttribute("points",`${cor.x},${cor.y} 
+        ${cor.x},${cor.y + CONFIG.SHAPE_MARGIN/2} 
+        ${cor.x},${cor.y + CONFIG.SHAPE_MARGIN}`);
+        return this;
+    }
+    setColour(newColour: string):ConnectingLine {
+        this.line.setAttribute("stroke", newColour);
+        return this;
+    }
+    remove() {
+        this.line.remove();
+    }
+
+    menuFunction(e: MouseEvent): void {
+        e.preventDefault();
+        const map:Map<string,()=>void> = this.getContextMenuMap()
+        CustomMenu.show(e.pageX, e.pageY, map);
+    };
+    getContextMenuMap():Map<string,() => void> {
+        const parent:CodeContainer = this.parent;
+        const map = new Map<string, () => void>();
+
+        map.set("Add here", (() => {
+            new Creator((e:Export) => {
+                Creator.exportToCode(e, this.parent, this.index);
+            });
+        }));
+        return map;
+    }
+}
+
 class CodeContainer implements Updatable {
     protected content: Array<Code> = [];
-    protected view: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
-    public line_colour: string = CONFIG.LINE_COLOUR;
+    public readonly view: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
+    protected lines: Array<ConnectingLine> = [ new ConnectingLine(this, 0)]
+    private _line_colour: string = CONFIG.LINE_COLOUR;
+    public readonly id = ids.get();
     constructor(protected parentElement: SVGSVGElement,
                 protected parent: Updatable) {
         parentElement.appendChild(this.view);
-        this.view.setAttribute("id", `${ids.get()}`)
+        this.view.setAttribute("id", `container_${this.id}`);
         this.view.setAttribute("class", "code-container");
+        requestAnimationFrame(this.update.bind(this));
+    }
+    get line_colour(): string {
+        return this._line_colour;
+    }
+    set line_colour(new_colour: string) {
+        this._line_colour = new_colour;
+        this.lines.forEach((line: ConnectingLine) => {line.setColour(new_colour);});
     }
 
-    get id() {
-        return this.view.getAttribute("id");
-    }
+
+
 
     get width(): number {
-        return Math.max(0, ...this.content.map((i: Code): number => i.width));
+        return Math.max(4 * CONFIG.LINE_WIDTH, ...this.content.map((i: Code): number => i.width));
     }
 
     get leftSpace(): number {
-        return Math.max(0, ...this.content.map((i: Code): number => i.leftSpace));
+        return Math.max(2*CONFIG.LINE_WIDTH, ...this.content.map((i: Code): number => i.leftSpace));
     }
 
     get rightSpace(): number {
-        return Math.max(0, ...this.content.map((i: Code): number => i.rightSpace));
+        return Math.max(2*CONFIG.LINE_WIDTH, ...this.content.map((i: Code): number => i.rightSpace));
     }
 
     get height() {
-        return this.content.map(e => e.height).reduce((p: number, c: number) => p + c, 0);
+        return this.content.map(e => e.height).reduce((p: number, c: number) => p + c + CONFIG.SHAPE_MARGIN, CONFIG.SHAPE_MARGIN);
     }
 
     get export(): Export[] {
@@ -143,6 +196,10 @@ class CodeContainer implements Updatable {
     }
 
     add(newCode: Code, index: number): void {
+        if (index < 0 || index > this.content.length) {
+            throw new Error("Index out of bounds");
+        }
+        this.lines.splice(index, 0, new ConnectingLine(this, index));
         this.content.splice(index, 0, newCode);
         newCode.addTo(this.view);
         newCode.update();
@@ -153,7 +210,8 @@ class CodeContainer implements Updatable {
             throw new Error("Index out of bounds");
         }
         const removed: Code = this.content.splice(index, 1)[0];
-        removed._outerElement.remove();
+        this.lines.splice(index, 1)[0].remove();
+        removed._innerElement.remove();
         this.update();
     }
 
@@ -161,17 +219,21 @@ class CodeContainer implements Updatable {
         let newY = 0;
         this.content.forEach((e: Code, i: number): void => {
             e.index = i
+            this.lines[i].index = i;
         });
+        this.lines[this.content.length].index = this.content.length;
         const middle: number = this.leftSpace;
-        for (const e of this.content) {
+        this.content.forEach((e,i)=> {
+            this.lines[i].setMid(c(middle, newY));
+            newY += CONFIG.SHAPE_MARGIN;
             e.setTopMid(c(middle, newY));
             newY += e.height;
-        }
+        });
+        this.lines[this.content.length].setMid(c(middle, newY))
+        newY += CONFIG.SHAPE_MARGIN;
         this.view.setAttribute("height", `${newY}`);
         this.view.setAttribute("width", `${this.width}`);
         requestAnimationFrame(this.parent.update.bind(this.parent));
-        // TODO:
-        //  - let CodeContainer handle line drawing
     }
 
     setTopMid(coords: Coordinates) {
@@ -187,44 +249,26 @@ class CodeContainer implements Updatable {
 }
 
 abstract class Code implements Updatable {
-    public readonly _outerElement: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
     public readonly id = ids.get();
     protected lines: Array<SVGLineElement> = [];
     /*
         TODO:
-          - Incomming arrow instead of first line
+          - Incoming arrow instead of first line
      */
-    constructor(
+    protected constructor(
         public readonly parent: CodeContainer,
         public index: number,
-        protected _innerElement: SVGSVGElement = document.createElementNS(SVG_NS, "svg")
+        public readonly _innerElement: SVGSVGElement = document.createElementNS(SVG_NS, "svg")
     ) {
         this._innerElement.setAttribute("x", `${0}`);
         this._innerElement.setAttribute("y", `${CONFIG.SHAPE_MARGIN}`);
         this._innerElement.setAttribute("id", `${this.constructor.name}_inner_${this.id}`);
-        this._outerElement.classList.add(`${this.constructor.name}`);
+        this._innerElement.classList.add(`${this.constructor.name}`);
 
-        this._outerElement.setAttribute("id", `${this.constructor.name}_outer_${this.id}`)
-        this._outerElement.appendChild(this._innerElement);
-        this._outerElement.classList.add("prevent-select");
-        this._outerElement.oncontextmenu =
-            this._outerElement.ondblclick = this.menuFunction.bind(this);
+        this._innerElement.oncontextmenu =
+            this._innerElement.ondblclick = this.menuFunction.bind(this);
 
         requestAnimationFrame(() => {
-            this.lines.push(
-                document.createElementNS(SVG_NS, "line")
-            );
-            this.lines.push(
-                document.createElementNS(SVG_NS, "line")
-            );
-            this.lines[0].setAttribute("id", `${this.constructor.name}_line1_${this.id}`);
-            this.lines[1].setAttribute("id", `${this.constructor.name}_line2_${this.id}`);
-            this.lines[0].setAttribute("stroke", `${parent.line_colour}`);
-            this.lines[0].setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
-            this.lines[1].setAttribute("stroke", `${parent.line_colour}`);
-            this.lines[1].setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
-            this.lines[0].setAttribute("marker-end","url(#arrowEnd)");
-            this.lines.forEach(l => this._outerElement.appendChild(l));
             parent.add(this, index);
             requestAnimationFrame(() => {
                 this.update();
@@ -267,7 +311,7 @@ abstract class Code implements Updatable {
     };
 
     get height(): number {
-        return this.innerHeight + CONFIG.SHAPE_MARGIN * 2;
+        return this.innerHeight;
     }
 
     get leftSpace(): number {
@@ -283,16 +327,7 @@ abstract class Code implements Updatable {
     update() {
         this.innerUpdate();
         requestAnimationFrame(() => {
-            this.lines.forEach((l) => {
-                l.setAttribute("x1", `${this.leftSpace}`);
-                l.setAttribute("x2", `${this.leftSpace}`);
-            });
-            this.lines[0].setAttribute("y1", `${0}`);
-            this.lines[0].setAttribute("y2", `${CONFIG.SHAPE_MARGIN}`);
-            this.lines[1].setAttribute("y1", `${CONFIG.SHAPE_MARGIN + this.innerHeight}`);
-            this.lines[1].setAttribute("y2", `${2 * CONFIG.SHAPE_MARGIN + this.innerHeight}`);
-            this._outerElement.setAttribute("height", `${this.height}`);
-            this._outerElement.setAttribute("width", `${this.width}`);
+
             requestAnimationFrame((): void => {
                 this.parent.update();
             });
@@ -303,13 +338,13 @@ abstract class Code implements Updatable {
 
     setTopMid(coords: Coordinates) {
         requestAnimationFrame(() => {
-            this._outerElement.setAttribute("x", `${coords.x - this.leftSpace}`);
-            this._outerElement.setAttribute("y", `${coords.y}`);
+            this._innerElement.setAttribute("x", `${coords.x - this.leftSpace}`);
+            this._innerElement.setAttribute("y", `${coords.y}`);
         });
     }
 
     addTo(parentElement: SVGSVGElement) {
-        parentElement.appendChild(this._outerElement);
+        parentElement.appendChild(this._innerElement);
     }
 }
 
@@ -410,9 +445,9 @@ abstract class GeneralLoopCode extends Code {
         this._innerElement.appendChild(this.skipLoopLine);
         this._innerElement.appendChild(this.restartLoopLine);
         this.loopBox.ondblclick = this.loopBox.oncontextmenu = this.menuFunction.bind(this);
-        this._outerElement.ondblclick = this._outerElement.oncontextmenu = (e: MouseEvent) => {};
+        this._innerElement.ondblclick = this._innerElement.oncontextmenu = (e: MouseEvent) => {};
         requestAnimationFrame((): void => {
-            this.update()
+            this.update();
         });
     }
 
@@ -640,7 +675,7 @@ class DoWhileLoop extends Code {
         this.loopText.setAttribute("y", `${CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
         this.loopBox.ondblclick = this.loopBox.oncontextmenu = this.menuFunction.bind(this);
         this.doBox.ondblclick = this.doBox.oncontextmenu = this.menuFunction.bind(this);
-        this._outerElement.ondblclick = this._outerElement.oncontextmenu = (e: MouseEvent) => {};
+        this._innerElement.ondblclick = this._innerElement.oncontextmenu = (e: MouseEvent) => {};
 
         this._innerElement.appendChild(this.restartLine);
         this._innerElement.classList.add("DoWhileLoop");
@@ -652,6 +687,9 @@ class DoWhileLoop extends Code {
             this.textBBox = this.loopText.getBBox();
             this.loopShape.setAttribute("points", this.getLoopBoxPoints());
             this.doShape.setAttribute("points", this.getDoBoxPoints());
+
+            this.doBox.setAttribute("width",`${this.doTextBBox.width + 4 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+            this.doBox.setAttribute("height",`${this.doTextBBox.height + 4 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
             requestAnimationFrame(()=>{
                 this.doBBox = this.doBox.getBBox();
                 this.loopBBox = this.loopBox.getBBox();
@@ -667,14 +705,13 @@ class DoWhileLoop extends Code {
         // const hDo: number = this.doText.getBBox().height + 4 * CONFIG.TEXT_MARGIN + 2 * CONFIG.LINE_WIDTH;
         const wLoop: number = this.loopBBox.width + 2 * CONFIG.LINE_WIDTH;
         const hLoop: number = this.loopBBox.height + 2 * CONFIG.LINE_WIDTH;
-        const wDo: number = this.doBBox.width + 2 * CONFIG.LINE_WIDTH;
+        const wDo: number = (this.doTextBBox.width + 4 * CONFIG.TEXT_MARGIN) + 2 * CONFIG.LINE_WIDTH;
         const hDo: number = this.doBBox.height + 2 * CONFIG.LINE_WIDTH;
 
         const cPoint = Math.max(0,wLoop / 2, wDo / 2, this.container.leftSpace);
+        this.loopShape.setAttribute("points", this.getLoopBoxPoints());
         this.doBox.setAttribute("x",`${cPoint - wDo / 2}`);
         this.doBox.setAttribute("y",`${0}`);
-        this.doBox.setAttribute("width",`${this.doText.getBBox().width + 4 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
-        this.doBox.setAttribute("height",`${this.doText.getBBox().height + 4 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
         this.container.setTopMid(c(cPoint, hDo));
         this.loopBox.setAttribute("x",`${cPoint - wLoop / 2}`);
         this.loopBox.setAttribute("y",`${hDo + this.container.height}`);
@@ -697,8 +734,8 @@ class DoWhileLoop extends Code {
     }
 
     protected getDoBoxPoints(): string {
-        const height: number = this.textBBox.height + 4 * CONFIG.TEXT_MARGIN;
-        const width: number = this.textBBox.width + 4 * CONFIG.TEXT_MARGIN;
+        const height: number = this.doTextBBox.height + 4 * CONFIG.TEXT_MARGIN;
+        const width: number = this.doTextBBox.width + 4 * CONFIG.TEXT_MARGIN;
         return [
             `${CONFIG.LINE_WIDTH},${CONFIG.LINE_WIDTH}`,
             `${width - CONFIG.LINE_WIDTH},${CONFIG.LINE_WIDTH}`,
@@ -811,7 +848,7 @@ class IfStatementCode extends Code {
         this.ifBoxShape.setAttribute("stroke", this.parent.line_colour);
         this.ifBoxShape.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
         this.ifBox.ondblclick = this.ifBox.oncontextmenu = this.menuFunction.bind(this);
-        this._outerElement.ondblclick = this._outerElement.oncontextmenu = () => {
+        this._innerElement.ondblclick = this._innerElement.oncontextmenu = () => {
         };
         this._falseLine1.setAttribute("stroke","red");
         this._falseLine2.setAttribute("stroke","red");
@@ -821,11 +858,11 @@ class IfStatementCode extends Code {
             this._innerElement.appendChild(line);
             line.setAttribute("fill", "none")
             line.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
-            line.setAttribute("marker-start","url(#arrowStart)");
         });
+        [this._trueLine1,this._falseLine1].forEach(line=>line.setAttribute("marker-start","url(#arrowStart)"));
 
         this.ifBox.ondblclick = this.ifBox.oncontextmenu = this.menuFunction.bind(this);
-        this._outerElement.ondblclick = this._outerElement.oncontextmenu = (e: MouseEvent) => {
+        this._innerElement.ondblclick = this._innerElement.oncontextmenu = (e: MouseEvent) => {
         };
         requestAnimationFrame(()=>{
             this.textBBox = this.textBox.getBBox();
@@ -886,7 +923,7 @@ class IfStatementCode extends Code {
      */
     private arrangeContainers(): void {
         const heightIfBox: number = this.textBBox.height + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH,
-            widthIfBox: number = this.textBBox.width + 2 * CONFIG.TEXT_MARGIN + 2 * CONFIG.LINE_WIDTH,
+            widthIfBox: number = this.textBBox.width + 2 * CONFIG.TEXT_MARGIN /*+ 2 * CONFIG.LINE_WIDTH*/,
             widthTrue: number = this._falseContent.width, widthFalse: number = this._trueContent.width,
             heightTrue: number = this._falseContent.height, heightFalse: number = this._trueContent.height,
             yContent: number = heightIfBox + CONFIG.SHAPE_MARGIN,
@@ -1159,14 +1196,14 @@ class Main {
         bodyElement.appendChild(this.SVG); // Attach to DOM for rendering
         this.SVG.setAttribute("id", `mainCode_${this.id}`);
         this.SVG.innerHTML += `<defs>
-    <marker id="circle" markerWidth="8" markerHeight="8" refX="5" refY="5">
-      <circle cx="5" cy="5" r="3" fill="black" />
+    <marker id="arrow" markerWidth="${CONFIG.LINE_WIDTH}" markerHeight="${CONFIG.LINE_WIDTH}" refX="${CONFIG.LINE_WIDTH / 2}" refY="${CONFIG.LINE_WIDTH / 2}" orient="auto">
+      <path d="M 0 0 L ${CONFIG.LINE_WIDTH} ${CONFIG.LINE_WIDTH / 2} L 0 ${CONFIG.LINE_WIDTH} z" />
     </marker>
-    <marker id="arrowEnd" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">
-      <path d="M 0 0 L 5 2.5 L 0 5 z" fill="black" />
+    <marker id="arrowEnd" markerWidth="${CONFIG.LINE_WIDTH}" markerHeight="${CONFIG.LINE_WIDTH}" refX="${CONFIG.LINE_WIDTH}" refY="${CONFIG.LINE_WIDTH / 2}" orient="auto">
+      <path d="M 0 0 L ${CONFIG.LINE_WIDTH} ${CONFIG.LINE_WIDTH / 2} L 0 ${CONFIG.LINE_WIDTH} z" fill="black" />
     </marker>
-    <marker id="arrowStart" markerWidth="5" markerHeight="5" refX="0" refY="2.5" orient="auto">
-      <path d="M 0 0 L 5 2.5 L 0 5 z" fill="black" />
+    <marker id="arrowStart" markerWidth="${CONFIG.LINE_WIDTH}" markerHeight="${CONFIG.LINE_WIDTH}" refX="0" refY="${CONFIG.LINE_WIDTH / 2}" orient="auto">
+      <path d="M 0 0 L ${CONFIG.LINE_WIDTH} ${CONFIG.LINE_WIDTH / 2} L 0 ${CONFIG.LINE_WIDTH} z" fill="black" />
     </marker>
   </defs>`;
         this.container = new CodeContainer(this.SVG, this);
@@ -1183,7 +1220,7 @@ class Main {
     }
 
     update() {
-        this.container.update();
+        // this.container.update();
         const middle = Math.max(this.startNode._element.getBBox().width / 2, this.container.leftSpace);
         const width = Math.max(this.startNode._element.getBBox().width, this.container.width);
         this.startNode.updateTopMid(c(middle, 0));
