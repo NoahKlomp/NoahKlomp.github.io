@@ -13,9 +13,12 @@ abstract class PopUp {
         this.element.style.display = 'none'; // Initially hidden
         document.body.appendChild(this.element);
         this.add(this.closeButton);
-        this.closeButton.innerHTML = 'Close';
+        this.closeButton.innerHTML = 'X';
         this.closeButton.className = 'close-button';
         this.closeButton.style.display = 'block';
+        this.closeButton.style.background = "red";
+        this.closeButton.style.padding = `${CONFIG.TEXT_MARGIN}px`;
+
         this.closeButton.onclick = this.close.bind(this);
     }
     protected setBG(background:string) {

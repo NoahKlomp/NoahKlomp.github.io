@@ -172,7 +172,6 @@ class CodeContainer implements Updatable {
         requestAnimationFrame(this.parent.update.bind(this.parent));
         // TODO:
         //  - let CodeContainer handle line drawing
-        //  - let line color depend on CodeContainer
     }
 
     setTopMid(coords: Coordinates) {
@@ -224,6 +223,7 @@ abstract class Code implements Updatable {
             this.lines[0].setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
             this.lines[1].setAttribute("stroke", `${parent.line_colour}`);
             this.lines[1].setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
+            this.lines[0].setAttribute("marker-end","url(#arrowEnd)");
             this.lines.forEach(l => this._outerElement.appendChild(l));
             parent.add(this, index);
             requestAnimationFrame(() => {
@@ -317,7 +317,7 @@ abstract class Code implements Updatable {
 class StatementCode extends Code {
     private _textElement = document.createElementNS(SVG_NS, "text");
     private _rectangle = document.createElementNS(SVG_NS, "rect");
-
+    private textbbox:DOMRect = this._textElement.getBBox();
     /*
         TODO:
           - Shape border?
@@ -327,8 +327,7 @@ class StatementCode extends Code {
         this._innerElement.setAttribute("class", "statement");
         this._innerElement.appendChild(this._rectangle);
         this._innerElement.appendChild(this._textElement);
-        this._textElement.textContent = text;
-        this.update();
+        this.text = text;
     }
 
     get export(): Export {
@@ -340,11 +339,11 @@ class StatementCode extends Code {
     }
 
     get width(): number {
-        return this._textElement.getBBox().width + 2 * CONFIG.TEXT_MARGIN;
+        return this.textbbox.width + 2 * CONFIG.TEXT_MARGIN;
     }
 
     get innerHeight(): number {
-        return this._textElement.getBBox().height + 2 * CONFIG.TEXT_MARGIN;
+        return this.textbbox.height + 2 * CONFIG.TEXT_MARGIN;
     }
 
     innerUpdate(): void {
@@ -363,7 +362,11 @@ class StatementCode extends Code {
 
     set text(newText: string) {
         this._textElement.innerHTML = newText.replace("\n","<br/>");
-        requestAnimationFrame(this.update.bind(this));
+        requestAnimationFrame(()=>{
+            this.textbbox = this._textElement.getBBox();
+            this.update.bind(this);
+
+        });
     }
     get text():string {
         return this._textElement.textContent || "";
@@ -377,6 +380,7 @@ abstract class GeneralLoopCode extends Code {
     private loopBox: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
     private loopBoxShape: SVGPolygonElement = document.createElementNS(SVG_NS, "polygon");
     private loopText: SVGTextElement = document.createElementNS(SVG_NS, "text");
+    private textbbox: DOMRect = this.loopText.getBBox();
     private skipLoopLine: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
     private restartLoopLine: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
     public container: CodeContainer;
@@ -389,7 +393,7 @@ abstract class GeneralLoopCode extends Code {
         super(parent, index);
         this.container = new CodeContainer(this._innerElement, this);
         this.container.line_colour = "green";
-        this.loopText.textContent = text;
+        this.text = text;
         this.loopText.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
         this.loopText.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
         this.loopText.setAttribute("text-anchor", "start");
@@ -406,9 +410,10 @@ abstract class GeneralLoopCode extends Code {
         this._innerElement.appendChild(this.skipLoopLine);
         this._innerElement.appendChild(this.restartLoopLine);
         this.loopBox.ondblclick = this.loopBox.oncontextmenu = this.menuFunction.bind(this);
-        this._outerElement.ondblclick = this._outerElement.oncontextmenu = (e: MouseEvent) => {
-        };
-        requestAnimationFrame((): void => this.update());
+        this._outerElement.ondblclick = this._outerElement.oncontextmenu = (e: MouseEvent) => {};
+        requestAnimationFrame((): void => {
+            this.update()
+        });
     }
 
 
@@ -420,18 +425,23 @@ abstract class GeneralLoopCode extends Code {
         this.loopBoxShape.setAttribute("fill", this.MAINBOX_COLOUR);
         this.loopBoxShape.setAttribute("stroke", this.parent.line_colour);
         this.loopBoxShape.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
-        this.loopBox.setAttribute("width", `${this.loopText.getBBox().width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
-        this.loopBox.setAttribute("height", `${this.loopText.getBBox().height + 3 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+        this.loopBox.setAttribute("width", `${this.textbbox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+        this.loopBox.setAttribute("height", `${this.textbbox.height + 3 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
 
-        this.loopBox.setAttribute("x", `${this.leftSpace - this.loopBox.getBBox().width / 2}`);
+        this.loopBox.setAttribute("x", `${this.leftSpace - (this.textbbox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH) / 2}`);
 
         this.skipLoopLine.setAttribute("fill", "none");
         this.skipLoopLine.setAttribute("stroke", "red");
         this.skipLoopLine.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
+        this.skipLoopLine.setAttribute("marker-end","url(#arrowEnd)");
+        this.skipLoopLine.setAttribute("marker-start","url(#arrowStart)");
 
         this.restartLoopLine.setAttribute("fill", "none");
         this.restartLoopLine.setAttribute("stroke", "green");
         this.restartLoopLine.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
+        this.restartLoopLine.setAttribute("marker-end","url(#arrowEnd)");
+        this.restartLoopLine.setAttribute("marker-start","url(#arrowStart)");
+
         this.loopBoxShape.setAttribute("points", this.getLoopBoxPoints());
         requestAnimationFrame((): void => {
             this.skipLoopLine.setAttribute("points", this.getSkipLinePoints());
@@ -443,13 +453,13 @@ abstract class GeneralLoopCode extends Code {
 
 
     get leftSpace(): number {
-        return Math.max(this.loopText.getBBox().width / 2 + CONFIG.TEXT_MARGIN, this.container.leftSpace) +
+        return Math.max(this.textbbox.width / 2 + CONFIG.TEXT_MARGIN, this.container.leftSpace) +
             CONFIG.SHAPE_MARGIN +
             CONFIG.LINE_WIDTH / 2;
     }
 
     get rightSpace(): number {
-        return Math.max(this.loopText.getBBox().width / 2 + CONFIG.TEXT_MARGIN, this.container.rightSpace) +
+        return Math.max(this.textbbox.width / 2 + CONFIG.TEXT_MARGIN, this.container.rightSpace) +
             CONFIG.SHAPE_MARGIN +
             CONFIG.LINE_WIDTH / 2;
     }
@@ -459,8 +469,8 @@ abstract class GeneralLoopCode extends Code {
      * @private
      */
     private getLoopBoxPoints(): string {
-        const height: number = this.loopText.getBBox().height + 2 * CONFIG.TEXT_MARGIN;
-        const width: number = this.loopText.getBBox().width + 2 * CONFIG.TEXT_MARGIN;
+        const height: number = this.textbbox.height + 2 * CONFIG.TEXT_MARGIN;
+        const width: number = this.textbbox.width + 2 * CONFIG.TEXT_MARGIN;
         return [
             `${CONFIG.LINE_WIDTH / 2},${ CONFIG.LINE_WIDTH / 2 }`,
             `${width - CONFIG.LINE_WIDTH / 2},${ CONFIG.LINE_WIDTH / 2 }`,
@@ -478,8 +488,8 @@ abstract class GeneralLoopCode extends Code {
      * @private
      */
     private getSkipLinePoints(): string {
-        const heightLoopBox: number = this.loopBox.getBBox().height + CONFIG.LINE_WIDTH;
-        const widthLoopBox: number = this.loopBox.getBBox().width + CONFIG.LINE_WIDTH;
+        const heightLoopBox: number = (this.textbbox.height + 2 * CONFIG.TEXT_MARGIN) + CONFIG.LINE_WIDTH;
+        const widthLoopBox: number = (this.textbbox.width + 2 * CONFIG.TEXT_MARGIN) + CONFIG.LINE_WIDTH;
         const contentHeight: number = this.container.height;
         const contentWidth: number = this.width - (2 * CONFIG.SHAPE_MARGIN);
         const maxLeftSize: number = Math.max(widthLoopBox / 2, this.leftSpace);
@@ -487,7 +497,7 @@ abstract class GeneralLoopCode extends Code {
         return [
             `${maxLeftSize - widthLoopBox / 2},${heightLoopBox / 2}`,
             `${CONFIG.LINE_WIDTH / 2},${heightLoopBox / 2}`,
-            `${CONFIG.LINE_WIDTH / 2},${heightLoopBox / 2 + contentHeight + 2.5 * CONFIG.SHAPE_MARGIN + CONFIG.LINE_WIDTH}`,
+            `${CONFIG.LINE_WIDTH / 2},${heightLoopBox / 2 + contentHeight + 2.5 * CONFIG.SHAPE_MARGIN + CONFIG.LINE_WIDTH / 2}`,
             `${maxLeftSize},${heightLoopBox / 2 + contentHeight + 2.5 * CONFIG.SHAPE_MARGIN + CONFIG.LINE_WIDTH / 2}`
         ].join(" ");
     }
@@ -499,8 +509,8 @@ abstract class GeneralLoopCode extends Code {
      * @private
      */
     private getRestartLinePoints(): string {
-        const heightLoopBox: number = this.loopBox.getBBox().height + CONFIG.LINE_WIDTH;
-        const widthLoopBox: number = this.loopBox.getBBox().width + CONFIG.LINE_WIDTH;
+        const heightLoopBox: number = (this.textbbox.height + 2 * CONFIG.TEXT_MARGIN) + CONFIG.LINE_WIDTH;
+        const widthLoopBox: number = (this.textbbox.width + 2 * CONFIG.TEXT_MARGIN) + CONFIG.LINE_WIDTH;
         const contentHeight: number = this.container.height;
         const contentWidth: number = this.container.width;
         const maxRightSize: number = Math.max(widthLoopBox / 2, this.rightSpace);
@@ -528,14 +538,17 @@ abstract class GeneralLoopCode extends Code {
     }
 
     get height(): number {
-        return this.loopBox.getBBox().height + CONFIG.LINE_WIDTH +
+        return (this.textbbox.height + 2 * CONFIG.TEXT_MARGIN) + 3 *CONFIG.LINE_WIDTH +
             this.container.height +
             3 * CONFIG.SHAPE_MARGIN;
     }
 
     set text(newText: string) {
         this.loopText.innerHTML = newText.replace("\n","<br/>");
-        requestAnimationFrame(this.update.bind(this));
+        requestAnimationFrame(()=>{
+            this.textbbox = this.loopText.getBBox();
+            this.update();
+        });
     }
     get text(): string {
         return this.loopText.textContent || ""
@@ -574,10 +587,14 @@ class ForLoopCode extends GeneralLoopCode {
 class DoWhileLoop extends Code {
     protected doBox: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
     private doText: SVGTextElement = document.createElementNS(SVG_NS, "text");
+    private doTextBBox: DOMRect = this.doText.getBBox();
+    private doBBox: DOMRect = this.doBox.getBBox();
     private doShape: SVGPolygonElement = document.createElementNS(SVG_NS, "polygon");
     protected loopBox: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
     private loopText: SVGTextElement = document.createElementNS(SVG_NS, "text");
+    private textBBox:DOMRect = this.loopText.getBBox();
     private loopShape: SVGPolygonElement = document.createElementNS(SVG_NS, "polygon");
+    private loopBBox: DOMRect = this.loopBox.getBBox();
     public container: CodeContainer;
     private restartLine = document.createElementNS(SVG_NS, "polyline");
     /*
@@ -610,10 +627,13 @@ class DoWhileLoop extends Code {
         this.restartLine.setAttribute("fill", "none");
         this.restartLine.setAttribute("stroke", "green");
         this.restartLine.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
+        this.restartLine.setAttribute("marker-end","url(#arrowEnd)");
+        this.restartLine.setAttribute("marker-start","url(#arrowStart)");
+
         this.loopBox.appendChild(this.loopText);
         this._innerElement.appendChild(this.loopBox);
         this.loopBox.classList.add("DoWhileLoopBox");
-        this.loopText.textContent = text;
+        this.text = text;
         this.loopText.setAttribute("text-anchor", "start");
         this.loopText.setAttribute("dominant-baseline", "hanging");
         this.loopText.setAttribute("x", `${CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
@@ -628,9 +648,15 @@ class DoWhileLoop extends Code {
 
 
         requestAnimationFrame(() =>{
+            this.doTextBBox = this.doText.getBBox();
+            this.textBBox = this.loopText.getBBox();
             this.loopShape.setAttribute("points", this.getLoopBoxPoints());
             this.doShape.setAttribute("points", this.getDoBoxPoints());
-            requestAnimationFrame(this.update.bind(this));
+            requestAnimationFrame(()=>{
+                this.doBBox = this.doBox.getBBox();
+                this.loopBBox = this.loopBox.getBBox();
+                this.update();
+            });
         });
     }
 
@@ -639,10 +665,10 @@ class DoWhileLoop extends Code {
         // const hLoop: number = this.loopText.getBBox().height + 2 * CONFIG.TEXT_MARGIN + 2 * CONFIG.LINE_WIDTH;
         // const wDo: number = this.doText.getBBox().width + 4 * CONFIG.TEXT_MARGIN + 2 * CONFIG.LINE_WIDTH;
         // const hDo: number = this.doText.getBBox().height + 4 * CONFIG.TEXT_MARGIN + 2 * CONFIG.LINE_WIDTH;
-        const wLoop: number = this.loopShape.getBBox().width + 2 * CONFIG.LINE_WIDTH;
-        const hLoop: number = this.loopShape.getBBox().height + 2 * CONFIG.LINE_WIDTH;
-        const wDo: number = this.doShape.getBBox().width + 2 * CONFIG.LINE_WIDTH;
-        const hDo: number = this.doShape.getBBox().height + 2 * CONFIG.LINE_WIDTH;
+        const wLoop: number = this.loopBBox.width + 2 * CONFIG.LINE_WIDTH;
+        const hLoop: number = this.loopBBox.height + 2 * CONFIG.LINE_WIDTH;
+        const wDo: number = this.doBBox.width + 2 * CONFIG.LINE_WIDTH;
+        const hDo: number = this.doBBox.height + 2 * CONFIG.LINE_WIDTH;
 
         const cPoint = Math.max(0,wLoop / 2, wDo / 2, this.container.leftSpace);
         this.doBox.setAttribute("x",`${cPoint - wDo / 2}`);
@@ -652,21 +678,27 @@ class DoWhileLoop extends Code {
         this.container.setTopMid(c(cPoint, hDo));
         this.loopBox.setAttribute("x",`${cPoint - wLoop / 2}`);
         this.loopBox.setAttribute("y",`${hDo + this.container.height}`);
-        this.loopBox.setAttribute("height",`${this.loopText.getBBox().height + 3 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
-        this.loopBox.setAttribute("width",`${this.loopText.getBBox().width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+        this.loopBox.setAttribute("height",`${this.textBBox.height + 3 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+        this.loopBox.setAttribute("width",`${this.textBBox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
         this.restartLine.setAttribute("points", this.getRestartPoints());
     }
     set text(newText:string) {
         this.loopText.innerHTML = newText.replace("\n","<br/>");
-        requestAnimationFrame(this.update.bind(this));
+        requestAnimationFrame(()=>{
+            this.textBBox = this.loopText.getBBox();
+            requestAnimationFrame(()=>{
+                this.loopBBox = this.loopBox.getBBox();
+                this.update();
+            });
+        });
     }
     get text(): string {
         return this.loopText.textContent || "";
     }
 
     protected getDoBoxPoints(): string {
-        const height: number = this.doText.getBBox().height + 4 * CONFIG.TEXT_MARGIN;
-        const width: number = this.doText.getBBox().width + 4 * CONFIG.TEXT_MARGIN;
+        const height: number = this.textBBox.height + 4 * CONFIG.TEXT_MARGIN;
+        const width: number = this.textBBox.width + 4 * CONFIG.TEXT_MARGIN;
         return [
             `${CONFIG.LINE_WIDTH},${CONFIG.LINE_WIDTH}`,
             `${width - CONFIG.LINE_WIDTH},${CONFIG.LINE_WIDTH}`,
@@ -680,8 +712,8 @@ class DoWhileLoop extends Code {
      * @private
      */
     private getLoopBoxPoints(): string {
-        const height: number = this.loopText.getBBox().height + 2 * CONFIG.TEXT_MARGIN;
-        const width: number = this.loopText.getBBox().width + 2 * CONFIG.TEXT_MARGIN;
+        const height: number = this.textBBox.height + 2 * CONFIG.TEXT_MARGIN;
+        const width: number = this.textBBox.width + 2 * CONFIG.TEXT_MARGIN;
         return [
             `${CONFIG.LINE_WIDTH / 2},${CONFIG.LINE_WIDTH / 2}`,
             `${width - CONFIG.LINE_WIDTH},${CONFIG.LINE_WIDTH / 2}`,
@@ -692,10 +724,10 @@ class DoWhileLoop extends Code {
     }
 
     getRestartPoints(): string {
-        const heightDoBox = this.doBox.getBBox().height;
-        const widthDoBox = this.doBox.getBBox().width;
-        const heightLoopBox = this.loopBox.getBBox().height;
-        const widthLoopBox = this.loopBox.getBBox().width;
+        const heightDoBox = this.doBBox.height;
+        const widthDoBox = this.doBBox.width;
+        const heightLoopBox = this.loopBBox.height;
+        const widthLoopBox = this.loopBBox.width;
         const heightContent = this.container.height;
         return [
             `${this.leftSpace + widthLoopBox / 2},${heightContent + heightDoBox + heightLoopBox / 2 }`,
@@ -710,15 +742,15 @@ class DoWhileLoop extends Code {
     }
     get leftSpace():number {
         return Math.max(0,
-                (this.doText.getBBox().width + 4 * CONFIG.TEXT_MARGIN) / 2,
-                (this.loopText.getBBox().width + 2 * CONFIG.TEXT_MARGIN) / 2,
+                (this.doTextBBox.width + 4 * CONFIG.TEXT_MARGIN) / 2,
+                (this.textBBox.width + 2 * CONFIG.TEXT_MARGIN) / 2,
                 this.container.leftSpace
             );
     }
     get rightSpace():number {
         return Math.max(0,
-            (this.doText.getBBox().width + 4 * CONFIG.TEXT_MARGIN) / 2,
-            (this.loopText.getBBox().width + 2 * CONFIG.TEXT_MARGIN) / 2,
+            (this.doTextBBox.width + 4 * CONFIG.TEXT_MARGIN) / 2,
+            (this.textBBox.width + 2 * CONFIG.TEXT_MARGIN) / 2,
             this.container.rightSpace
         ) + 2 * CONFIG.SHAPE_MARGIN;
     }
@@ -750,6 +782,7 @@ class IfStatementCode extends Code {
     private ifBox: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
     private ifBoxShape: SVGPolygonElement = document.createElementNS(SVG_NS, "polygon");
     private textBox: SVGTextElement = document.createElementNS(SVG_NS, "text");
+    private textBBox: DOMRect = this.textBox.getBBox();
     private _falseLine1: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
     private _falseLine2: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
     private _trueLine1: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
@@ -788,19 +821,24 @@ class IfStatementCode extends Code {
             this._innerElement.appendChild(line);
             line.setAttribute("fill", "none")
             line.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
+            line.setAttribute("marker-start","url(#arrowStart)");
         });
 
         this.ifBox.ondblclick = this.ifBox.oncontextmenu = this.menuFunction.bind(this);
         this._outerElement.ondblclick = this._outerElement.oncontextmenu = (e: MouseEvent) => {
         };
-        requestAnimationFrame(this.update.bind(this));
+        requestAnimationFrame(()=>{
+            this.textBBox = this.textBox.getBBox();
+            this.update();
+
+        });
     }
 
     innerUpdate(): void {
         this.ifBoxShape.setAttribute("points", this.getIfBoxPoints());
         this.textBox.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
         this.textBox.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
-        this.ifBox.setAttribute("x", `${this.leftSpace - ((this.textBox.getBBox().width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH) / 2)}`);
+        this.ifBox.setAttribute("x", `${this.leftSpace - ((this.textBBox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH) / 2)}`);
         this.arrangeContainers();
     }
 
@@ -847,8 +885,8 @@ class IfStatementCode extends Code {
      * @private
      */
     private arrangeContainers(): void {
-        const heightIfBox: number = this.textBox.getBBox().height + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH,
-            widthIfBox: number = this.textBox.getBBox().width + 2 * CONFIG.TEXT_MARGIN + 2 * CONFIG.LINE_WIDTH,
+        const heightIfBox: number = this.textBBox.height + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH,
+            widthIfBox: number = this.textBBox.width + 2 * CONFIG.TEXT_MARGIN + 2 * CONFIG.LINE_WIDTH,
             widthTrue: number = this._falseContent.width, widthFalse: number = this._trueContent.width,
             heightTrue: number = this._falseContent.height, heightFalse: number = this._trueContent.height,
             yContent: number = heightIfBox + CONFIG.SHAPE_MARGIN,
@@ -870,7 +908,7 @@ class IfStatementCode extends Code {
     }
 
     get rightSpace(): number { //TODO: FIX
-        const minHalfSize: number = (this.textBox.getBBox().width + 4 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH + CONFIG.SHAPE_MARGIN) / 2;
+        const minHalfSize: number = (this.textBBox.width + 4 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH + CONFIG.SHAPE_MARGIN) / 2;
         if (this._trueContent.leftSpace + CONFIG.SHAPE_MARGIN < minHalfSize) {
             return minHalfSize + this._trueContent.rightSpace + CONFIG.SHAPE_MARGIN;
         }
@@ -878,7 +916,7 @@ class IfStatementCode extends Code {
     }
 
     get leftSpace(): number {
-        const minHalfSize: number = (this.textBox.getBBox().width + 4 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH + CONFIG.SHAPE_MARGIN) / 2;
+        const minHalfSize: number = (this.textBBox.width + 4 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH + CONFIG.SHAPE_MARGIN) / 2;
         if (this._falseContent.rightSpace + CONFIG.SHAPE_MARGIN < minHalfSize) {
             return minHalfSize + this._falseContent.leftSpace + CONFIG.SHAPE_MARGIN;
         }
@@ -902,12 +940,15 @@ class IfStatementCode extends Code {
     }
     set text(newText:string) {
         this.textBox.innerHTML = newText.replace("\n","<br/>");
-        requestAnimationFrame(()=>this.update());
+        requestAnimationFrame(()=>{
+            this.textBBox = this.textBox.getBBox();
+            this.update();
+        });
     }
 
     private getIfBoxPoints(): string {
-        const height: number = this.textBox.getBBox().height + 2 * CONFIG.TEXT_MARGIN;
-        const width: number = this.textBox.getBBox().width + 2 * CONFIG.TEXT_MARGIN;
+        const height: number = this.textBBox.height + 2 * CONFIG.TEXT_MARGIN;
+        const width: number = this.textBBox.width + 2 * CONFIG.TEXT_MARGIN;
         return [
             `${CONFIG.LINE_WIDTH},${CONFIG.LINE_WIDTH / 2 + height / 2}`,
             `${CONFIG.LINE_WIDTH + CONFIG.TEXT_MARGIN * 2},${CONFIG.LINE_WIDTH / 2}`,
@@ -944,69 +985,42 @@ class IfStatementCode extends Code {
  * should only occur once per flowchart
  */
 class StartNode {
-    // public readonly _element: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
-    // private _textElement: SVGTextElement = document.createElementNS(SVG_NS, "text");
-    // private _ellipseElement: SVGEllipseElement = document.createElementNS(SVG_NS, "ellipse");
-    // public readonly line: SVGLineElement = document.createElementNS(SVG_NS, "line");
     public readonly id:number = ids.get();
-    public get _element():SVGSVGElement {
-        return document.querySelector(`#startNode_${this.id}`) || (()=> {
-            const el = document.createElementNS(SVG_NS, "svg");
-            el.setAttribute("id", `startNode_${this.id}`);
-            el.setAttribute("class", "start-node");
-            el.classList.add("prevent-select");
-            el.appendChild(this._ellipseElement);
-            el.appendChild(this._textElement);
-            el.appendChild(this.line);
-            return el;
-        })();
-    }
-    private get _textElement():SVGTextElement {
-        return document.querySelector(`#textElement_${this.id}`) || (():SVGTextElement=>{
-            const el = document.createElementNS(SVG_NS, "text");
-            el.id = `textElement_${this.id}`;
+    public readonly _element:SVGSVGElement = document.createElementNS(SVG_NS, "svg");
+    private _textElement:SVGTextElement = document.createElementNS(SVG_NS, "text");
+    private _ellipseElement:SVGEllipseElement  = document.createElementNS(SVG_NS, "ellipse");
+    public line:SVGLineElement = document.createElementNS(SVG_NS,"line");
 
-            el.classList.add("textElement");
-            el.classList.add("StartNode_text");
+    constructor(private parent: SVGSVGElement, private container:CodeContainer) {
 
-            el.textContent = "Start";
-            el.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
-            el.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
-            el.setAttribute("text-anchor", "start");
-            el.setAttribute("dominant-baseline", "hanging");
-            return el;
-        })();
-    }
+        this._element.setAttribute("id", `startNode_${ids.get()}`);
+        this._element.setAttribute("class", "start-node");
+        this._textElement.id = `textElement_${this.id}`;
 
-    private get _ellipseElement():SVGEllipseElement {
-        return document.querySelector(`#ellipseElement_${this.id}`) || (():SVGEllipseElement => {
-            const el = document.createElementNS(SVG_NS, "ellipse");
-            el.id = `ellipseElement_${this.id}`;
-            el.setAttribute("fill", CONFIG.MAIN_SHAPE_COLOUR);
-            return el;
-        })();
-    }
-    public get line():SVGLineElement {
-        return document.querySelector(`#low_line_${this.id}`) || (():SVGLineElement => {
-            const el:SVGLineElement = document.createElementNS(SVG_NS,"line");
-            el.id = `low_line_${this.id}`;
-            return el;
-        })();
-    }
-    private get parent():SVGSVGElement {
-        return document.querySelector(`#${this.parentID}`) || (():SVGSVGElement => {
-            const el = document.createElementNS(SVG_NS,"svg");
-            el.setAttribute("id",`${this.parentID}`);
-            document.body.appendChild(el);
-            return el;
-        })();
-    }
-    constructor(private parentID: string, private container:CodeContainer) {
+        this.line.id = `low_line_${this.id}`;
+        this.line.setAttribute("marker-start","url(#arrowStart")
+        this._textElement.classList.add("textElement");
+        this._textElement.classList.add("StartNode_text");
+        this._textElement.textContent = "Start";
+        this._textElement.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
+        this._textElement.setAttribute("y", `${CONFIG.TEXT_MARGIN }`);
+        this._textElement.setAttribute("text-anchor", "start");
+        this._textElement.setAttribute("dominant-baseline", "hanging");
+
+        this._ellipseElement.setAttribute("fill", CONFIG.MAIN_SHAPE_COLOUR);
+        this._ellipseElement.id = `ellipseElement_${this.id}`;
+
+        this._element.appendChild(this._ellipseElement);
+        this._element.appendChild(this._textElement);
+        this._element.appendChild(this.line);
+
+        parent.appendChild(this._element);
         this._element.appendChild(this._ellipseElement);
         this._element.appendChild(this._textElement);
         this._element.appendChild(this.line);
         this.parent.appendChild(this._element);
         requestAnimationFrame(this.update.bind(this));
+
     }
 
     get width(): number {
@@ -1063,71 +1077,37 @@ class StartNode {
  */
 class EndNode {
     public readonly id:number = ids.get();
-    public get _element():SVGSVGElement {
-        return document.querySelector(`#endNode_${this.id}`) || (()=> {
-            const el = document.createElementNS(SVG_NS, "svg");
-            el.setAttribute("id", `endNode_${this.id}`);
-            el.setAttribute("class", "end-node");
-            el.classList.add("prevent-select");
-            el.appendChild(this._ellipseElement);
-            el.appendChild(this._textElement);
-            el.appendChild(this.line);
-            return el;
-        })();
-    }
-    private get _textElement():SVGTextElement {
-        return document.querySelector(`#textElement_${this.id}`) || (():SVGTextElement=>{
-            const el = document.createElementNS(SVG_NS, "text");
-            el.id = `textElement_${this.id}`;
+    public readonly _element:SVGSVGElement = document.createElementNS(SVG_NS, "svg");
+    private _textElement:SVGTextElement = document.createElementNS(SVG_NS, "text");
+    private _ellipseElement:SVGEllipseElement  = document.createElementNS(SVG_NS, "ellipse");
+    public line:SVGLineElement = document.createElementNS(SVG_NS,"line");
 
-            el.classList.add("textElement");
-            el.classList.add("EndNode_text");
+    constructor(private parent: SVGSVGElement) {
 
-            el.textContent = "End";
-            el.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
-            el.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
-            el.setAttribute("text-anchor", "start");
-            el.setAttribute("dominant-baseline", "hanging");
-            return el;
-        })();
-    }
+        this._element.setAttribute("id", `endNode_${ids.get()}`);
+        this._element.setAttribute("class", "end-node");
+        this._textElement.id = `textElement_${this.id}`;
 
-    private get _ellipseElement():SVGEllipseElement {
-        return document.querySelector(`#ellipseElement_${this.id}`) || (():SVGEllipseElement => {
-            const el = document.createElementNS(SVG_NS, "ellipse");
-            el.id = `ellipseElement_${this.id}`;
-            el.setAttribute("fill", CONFIG.MAIN_SHAPE_COLOUR);
-            return el;
-        })();
-    }
-    public get line():SVGLineElement {
-        return document.querySelector(`#low_line_${this.id}`) || (():SVGLineElement => {
-            const el:SVGLineElement = document.createElementNS(SVG_NS,"line");
-            el.id = `low_line_${this.id}`;
-            return el;
-        })();
-    }
-    private get parent():SVGSVGElement {
-        return document.querySelector(`#${this.parentID}`) || (():SVGSVGElement => {
-            const el = document.createElementNS(SVG_NS,"svg");
-            el.setAttribute("id",`${this.parentID}`);
-            document.body.appendChild(el);
-            return el;
-        })();
-    }
-    constructor(private parentID: string) {
-        // this._element.setAttribute("id", `endNode_${ids.get()}`);
-        // this._element.setAttribute("class", "end-node");
-        // this._textElement.textContent = "End";
-        // this._textElement.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
-        // this._textElement.setAttribute("y", `${CONFIG.TEXT_MARGIN + CONFIG.SHAPE_MARGIN}`);
-        // this._textElement.setAttribute("text-anchor", "start");
-        // this._textElement.setAttribute("dominant-baseline", "hanging");
-        // this._ellipseElement.setAttribute("fill", CONFIG.MAIN_SHAPE_COLOUR);
-        // this._element.appendChild(this._ellipseElement);
-        // this._element.appendChild(this._textElement);
-        // this._element.appendChild(this.line);
-        // parent.appendChild(this._element);
+        this.line.id = `low_line_${this.id}`;
+
+        this.line.setAttribute("marker-end","url(#arrowEnd)");
+
+        this._textElement.classList.add("textElement");
+        this._textElement.classList.add("EndNode_text");
+        this._textElement.textContent = "End";
+        this._textElement.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
+        this._textElement.setAttribute("y", `${CONFIG.TEXT_MARGIN }`);
+        this._textElement.setAttribute("text-anchor", "start");
+        this._textElement.setAttribute("dominant-baseline", "hanging");
+
+        this._ellipseElement.setAttribute("fill", CONFIG.MAIN_SHAPE_COLOUR);
+        this._ellipseElement.id = `ellipseElement_${this.id}`;
+
+        this._element.appendChild(this._ellipseElement);
+        this._element.appendChild(this._textElement);
+        this._element.appendChild(this.line);
+
+        parent.appendChild(this._element);
         this._element.appendChild(this._ellipseElement);
         this._element.appendChild(this._textElement);
         this._element.appendChild(this.line);
@@ -1172,14 +1152,26 @@ class EndNode {
 class Main {
     public SVG: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
     public readonly id = ids.get();
-    public readonly container: CodeContainer = new CodeContainer(this.SVG, this);
+    public readonly container: CodeContainer ;
     public readonly startNode: StartNode;
     public readonly endNode: EndNode;
     constructor(bodyElement: HTMLElement) {
         bodyElement.appendChild(this.SVG); // Attach to DOM for rendering
         this.SVG.setAttribute("id", `mainCode_${this.id}`);
-        this.startNode = new StartNode(`mainCode_${this.id}`, this.container);
-        this.endNode = new EndNode(`mainCode_${this.id}`);
+        this.SVG.innerHTML += `<defs>
+    <marker id="circle" markerWidth="8" markerHeight="8" refX="5" refY="5">
+      <circle cx="5" cy="5" r="3" fill="black" />
+    </marker>
+    <marker id="arrowEnd" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto">
+      <path d="M 0 0 L 5 2.5 L 0 5 z" fill="black" />
+    </marker>
+    <marker id="arrowStart" markerWidth="5" markerHeight="5" refX="0" refY="2.5" orient="auto">
+      <path d="M 0 0 L 5 2.5 L 0 5 z" fill="black" />
+    </marker>
+  </defs>`;
+        this.container = new CodeContainer(this.SVG, this);
+        this.startNode = new StartNode(this.SVG, this.container);
+        this.endNode = new EndNode(this.SVG);
         requestAnimationFrame(this.init.bind(this));
         // this.init();
     }
