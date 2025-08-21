@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
+    <link rel="stylesheet" href="./hljs/styles/atom-one-dark.min.css">
     <style>
         #0:hover {
             background-color: rgba(255, 0, 0, 0.2);
@@ -41,13 +42,17 @@
             border-radius: 5px;
             cursor: pointer;
         }
-        
+        .hljs-comment {
+            color: #A3D9FF;
+        }
 
     </style>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@latest/build/styles/atom-one-dark.min.css">
-    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@latest/build/highlight.min.js"></script>
+    <script src="./hljs/highlight.min.js"></script>
     
-    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/languages/python.min.js"></script>
+    <script src="./hljs/languages/python.min.js"></script>
+    <script>
+        hljs.highlightAll();
+    </script>
     <!-- <script src="js/FlowChartBuilder/base.js" type="module"></script>
     <script src="js/FlowChartBuilder/base.js" type="module"></script> -->
 </head>
@@ -71,8 +76,8 @@
     <script src="./js/Three/Code.js"></script>
     <script src="./js/Three/Editor.js"></script>
     <div id="actingButtons" class="funButtons">
-        <button onclick="new CopyCodePopUp('python',main.export)">To Python Comments</button>
-        <button onclick="new CopyCodePopUp('java',main.export)">To Java Comments</button>
+        <button onclick="new CopyCodePopUp('python',main.export);hljs.highlightAll();">To Python Comments</button>
+        <button onclick="new CopyCodePopUp('java',main.export);hljs.highlightAll();">To Java Comments</button>
         <button>Share</button>
     </div>
 </body>

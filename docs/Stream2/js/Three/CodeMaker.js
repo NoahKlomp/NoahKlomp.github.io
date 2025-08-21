@@ -58,7 +58,7 @@ class JavaCodeMaker extends CodeMaker {
                 case CodeType.IF:
                     const trueCode = val.content["True"] || [Creator.getExport("STATEMENT")];
                     const falseCode = val.content["False"] || [Creator.getExport("STATEMENT")];
-                    return `${ind}if (${val.text.replace("\n", " ")}) {\n` +
+                    return `${ind}if (/*${val.text.replace("\n", " ")}*/) {\n` +
                         `${this.toCodeRecursive(trueCode, indent + 1)}\n` +
                         `${ind}} else {\n` +
                         `${this.toCodeRecursive(falseCode, indent + 1)}\n` +
@@ -67,7 +67,7 @@ class JavaCodeMaker extends CodeMaker {
                     const dowhilecode = val.content["Looped"] || [Creator.getExport("STATEMENT")];
                     return `${ind}do {\n` +
                         `${this.toCodeRecursive(dowhilecode, indent + 1)}\n` +
-                        `${ind}} while (${val.text.replace("\n", " ")});`;
+                        `${ind}} while (/*${val.text.replace("\n", " ")}*/);`;
                 case CodeType.FOR:
                     const forcode = val.content["Looped"] || [Creator.getExport("STATEMENT")];
                     return `${ind}for (/*${val.text.replace("\n", " ")}*/) {\n` +
@@ -75,7 +75,7 @@ class JavaCodeMaker extends CodeMaker {
                         `${ind}}`;
                 case CodeType.WHILE:
                     const whilecode = val.content["Looped"] || [Creator.getExport("STATEMENT")];
-                    return `${ind}while (${val.text.replace("\n", " ")}) {\n` +
+                    return `${ind}while (/*${val.text.replace("\n", " ")}*/) {\n` +
                         `${this.toCodeRecursive(whilecode, indent + 1)}\n` +
                         `}`;
                 default:

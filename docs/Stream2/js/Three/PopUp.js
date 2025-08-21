@@ -3,6 +3,10 @@ class PopUp {
     constructor() {
         this.element = document.createElement('div');
         this.closeButton = document.createElement('a');
+        if (PopUp.current) {
+            PopUp.current.close();
+        }
+        PopUp.current = this;
         this.element.className = 'pop-up';
         this.element.style.position = 'fixed';
         this.element.style.left = "50px";
@@ -44,6 +48,7 @@ class PopUp {
         if (this.element.parentNode) {
             this.element.parentNode.removeChild(this.element);
         }
+        PopUp.current = null;
     }
     setPosition(x, y) {
         this.element.style.left = Number.isFinite(x.toString()) ? `${x}px` : x.toString();
@@ -64,6 +69,7 @@ class PopUp {
         this.element.style.boxSizing = 'border-box'; // Ensure padding is included in width/height
     }
 }
+PopUp.current = null;
 class CopyCodePopUp extends PopUp {
     constructor(lan, code) {
         super();

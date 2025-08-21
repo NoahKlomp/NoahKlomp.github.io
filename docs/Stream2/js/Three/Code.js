@@ -380,10 +380,10 @@ class GeneralLoopCode extends Code {
         this.loopBox.setAttribute("width", `${this.textbbox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
         this.loopBox.setAttribute("height", `${this.textbbox.height + 3 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
         this.loopBox.setAttribute("x", `${this.leftSpace - (this.textbbox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH) / 2}`);
-        this.trueLabel.setAttribute("x", `${this.leftSpace + CONFIG.LINE_WIDTH}`);
+        this.trueLabel.setAttribute("x", `${this.leftSpace + 2 * CONFIG.LINE_WIDTH}`);
         this.trueLabel.setAttribute("y", `${this.textbbox.height + 3 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
         this.falseLabel.setAttribute("x", `${this.leftSpace - (this.textbbox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH) / 2}`);
-        this.falseLabel.setAttribute("y", `${(this.textbbox.height + CONFIG.LINE_WIDTH) / 2 + CONFIG.TEXT_MARGIN}`);
+        this.falseLabel.setAttribute("y", `${(this.textbbox.height + CONFIG.LINE_WIDTH) / 2 + 2 * CONFIG.TEXT_MARGIN}`);
         this.skipLoopLine.setAttribute("fill", "none");
         this.skipLoopLine.setAttribute("stroke", "red");
         this.skipLoopLine.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);

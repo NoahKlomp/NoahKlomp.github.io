@@ -1,7 +1,12 @@
 abstract class PopUp {
     private readonly element: HTMLDivElement = document.createElement('div');
+    protected static current: PopUp | null = null;
     private closeButton: HTMLAnchorElement = document.createElement('a');
     protected constructor() {
+        if (PopUp.current) {
+            PopUp.current.close();
+        }
+        PopUp.current = this;
         this.element.className = 'pop-up';
         this.element.style.position = 'fixed';
         this.element.style.left = "50px";
@@ -46,6 +51,7 @@ abstract class PopUp {
         if (this.element.parentNode) {
             this.element.parentNode.removeChild(this.element);
         }
+        PopUp.current = null;
     }
     public setPosition(x: number | string, y: number): void {
         this.element.style.left = Number.isFinite(x.toString())? `${x}px` : x.toString();
