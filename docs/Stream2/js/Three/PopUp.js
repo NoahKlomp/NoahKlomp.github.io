@@ -20,6 +20,9 @@ class PopUp {
         this.closeButton.className = 'close-button';
         this.closeButton.style.display = 'block';
         this.closeButton.style.background = "red";
+        this.closeButton.style.position = "fixed";
+        this.closeButton.style.right = "10px";
+        this.closeButton.style.top = "10px";
         this.closeButton.style.padding = `${CONFIG.TEXT_MARGIN}px`;
         this.closeButton.onclick = this.close.bind(this);
     }
@@ -59,5 +62,33 @@ class PopUp {
         this.element.style.width = width;
         this.element.style.height = height;
         this.element.style.boxSizing = 'border-box'; // Ensure padding is included in width/height
+    }
+}
+class CopyCodePopUp extends PopUp {
+    constructor(lan, code) {
+        super();
+        this.preElement = document.createElement("pre");
+        this.codeElement = document.createElement("CODE");
+        this.contentElement = document.createElement("textarea");
+        this.copyButton = document.createElement("button");
+        this.codeElement.classList.add("language-" + lan);
+        this.preElement.appendChild(this.codeElement);
+        this.contentElement.style.display = "none";
+        this.copyButton.innerHTML = "Copy Code";
+        this.copyButton.onclick = () => {
+            var copyText = this.contentElement;
+            // Select the text field
+            copyText.select();
+            copyText.setSelectionRange(0, Infinity); // For mobile devices
+            // Copy the text inside the text field
+            navigator.clipboard.writeText(copyText.value);
+        };
+        this.add(this.copyButton);
+        this.add(this.preElement);
+        this.add(this.contentElement);
+        const codeString = lan === "python" ? new PythonCodeMaker(code).toCode() : lan === "java" ? new JavaCodeMaker(code).toCode() : "";
+        this.codeElement.innerHTML = this.contentElement.textContent = codeString;
+        this.setFullScreen();
+        this.open();
     }
 }

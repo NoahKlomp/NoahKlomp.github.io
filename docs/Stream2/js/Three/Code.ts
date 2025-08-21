@@ -32,7 +32,11 @@ type YCor = number;
 type Coordinates = { x: XCor, y: YCor }
 type Export = {
     type: CodeType,
-    content: Content | null,
+    content: Content,
+    text: string
+} |  {
+    type: "StatementCode" | CodeType.STATEMENT,
+    content: null,
     text: string
 }
 type variable = {
@@ -110,19 +114,26 @@ interface Updatable {
 
 class ConnectingLine {
     private line: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
+    private element: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
+
     public readonly id: number = ids.get();
     constructor(private parent: CodeContainer, public index:number) {
         this.line.id = `line_for_${parent.id}_${this.id}`;
-        parent.view.appendChild(this.line);
+        this.element.id = `element_line_for_${parent.id}_${this.id}`;
+        this.element.setAttribute("width",`${4 * CONFIG.LINE_WIDTH}`);
+        this.element.appendChild(this.line);
+        this.line.setAttribute("points",`${2*CONFIG.LINE_WIDTH},${0} 
+        ${2*CONFIG.LINE_WIDTH},${CONFIG.SHAPE_MARGIN/2} 
+        ${2*CONFIG.LINE_WIDTH},${ CONFIG.SHAPE_MARGIN}`);
+        parent.view.appendChild(this.element);
         this.line.setAttribute("marker-mid", "url(#arrow)");
         this.line.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
         this.setColour(CONFIG.LINE_COLOUR);
-        this.line.ondblclick = this.line.oncontextmenu = this.menuFunction.bind(this);
+        this.element.ondblclick = this.element.oncontextmenu = this.menuFunction.bind(this);
     }
     setMid(cor: Coordinates): ConnectingLine {
-        this.line.setAttribute("points",`${cor.x},${cor.y} 
-        ${cor.x},${cor.y + CONFIG.SHAPE_MARGIN/2} 
-        ${cor.x},${cor.y + CONFIG.SHAPE_MARGIN}`);
+        this.element.setAttribute("x",`${cor.x - 2 * CONFIG.LINE_WIDTH}`);
+        this.element.setAttribute("y", `${cor.y}`);
         return this;
     }
     setColour(newColour: string):ConnectingLine {
@@ -130,25 +141,28 @@ class ConnectingLine {
         return this;
     }
     remove() {
-        this.line.remove();
+        this.element.remove();
     }
 
     menuFunction(e: MouseEvent): void {
         e.preventDefault();
-        const map:Map<string,()=>void> = this.getContextMenuMap()
-        CustomMenu.show(e.pageX, e.pageY, map);
-    };
-    getContextMenuMap():Map<string,() => void> {
-        const parent:CodeContainer = this.parent;
-        const map = new Map<string, () => void>();
-
-        map.set("Add here", (() => {
-            new Creator((e:Export) => {
-                Creator.exportToCode(e, this.parent, this.index);
-            });
-        }));
-        return map;
+        openAddMenu(c(e.pageX, e.pageY),this.parent, this.index);
     }
+
+    
+}
+function openAddMenu(cors:Coordinates, parent:CodeContainer, indexToAdd:number) {
+    requestAnimationFrame(()=>{
+        const map = new Map<string, () => void>();
+        for (let t in CodeType) {
+            if (!["FUNCTION", "MAIN"].includes(t)){
+                map.set("Add "+t, (() => {
+                    Creator.exportToCode(Creator.getExport(t), parent, indexToAdd);
+                }));
+            }
+        }
+        CustomMenu.show(cors.x, cors.y, map);
+    })
 }
 
 class CodeContainer implements Updatable {
@@ -176,7 +190,7 @@ class CodeContainer implements Updatable {
 
 
     get width(): number {
-        return Math.max(4 * CONFIG.LINE_WIDTH, ...this.content.map((i: Code): number => i.width));
+        return Math.max(4 * CONFIG.LINE_WIDTH, this.leftSpace + this.rightSpace);
     }
 
     get leftSpace(): number {
@@ -279,19 +293,17 @@ abstract class Code implements Updatable {
     menuFunction(e: MouseEvent): void {
         e.preventDefault();
         const parent:CodeContainer = this.parent;
-        const map:Map<string,()=>void> = this.getContextMenuMap()
+        const map:Map<string,()=>void> = this.getContextMenuMap(e)
         CustomMenu.show(e.pageX, e.pageY, map);
     };
-    getContextMenuMap():Map<string,() => void> {
+    getContextMenuMap(e:MouseEvent):Map<string,() => void> {
         const parent:CodeContainer = this.parent;
         const map = new Map<string, () => void>();
         map.set("Remove", (() => {
             parent.remove(this.index);
         }));
         map.set("Add After", (() => {
-            new Creator((e:Export) => {
-                Creator.exportToCode(e, this.parent, this.index + 1);
-            });
+            openAddMenu(c(e.pageX,e.pageY),this.parent, this.index + 1);
         }));
         map.set("Edit Text", (() => {
             new TextEditor(this,(newText:string) => {
@@ -418,6 +430,8 @@ abstract class GeneralLoopCode extends Code {
     private textbbox: DOMRect = this.loopText.getBBox();
     private skipLoopLine: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
     private restartLoopLine: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
+    private trueLabel:SVGTextElement = document.createElementNS(SVG_NS, "text");
+    private falseLabel:SVGTextElement = document.createElementNS(SVG_NS, "text");
     public container: CodeContainer;
     /*
         TODO:
@@ -444,8 +458,19 @@ abstract class GeneralLoopCode extends Code {
         this._innerElement.setAttribute("class", "loop_" + type);
         this._innerElement.appendChild(this.skipLoopLine);
         this._innerElement.appendChild(this.restartLoopLine);
+        this._innerElement.appendChild(this.falseLabel);
+        this._innerElement.appendChild(this.trueLabel);
         this.loopBox.ondblclick = this.loopBox.oncontextmenu = this.menuFunction.bind(this);
         this._innerElement.ondblclick = this._innerElement.oncontextmenu = (e: MouseEvent) => {};
+
+        this.trueLabel.textContent = "true";
+        this.falseLabel.textContent = "false";
+
+        this.trueLabel.setAttribute("text-anchor", "start");
+        this.trueLabel.setAttribute("dominant-baseline", "hanging");
+        this.falseLabel.setAttribute("dominant-baseline", "ideographic");
+        this.falseLabel.setAttribute("text-anchor", "end");
+
         requestAnimationFrame((): void => {
             this.update();
         });
@@ -455,7 +480,7 @@ abstract class GeneralLoopCode extends Code {
     innerUpdate(): void {
         this.container.setTopMid(c(this.leftSpace, this.loopBox.getBBox().height));
 
-        this._innerElement.setAttribute("height", `${this.height - 2 * CONFIG.SHAPE_MARGIN}`);
+        this._innerElement.setAttribute("height", `${this.height}`);
 
         this.loopBoxShape.setAttribute("fill", this.MAINBOX_COLOUR);
         this.loopBoxShape.setAttribute("stroke", this.parent.line_colour);
@@ -465,23 +490,29 @@ abstract class GeneralLoopCode extends Code {
 
         this.loopBox.setAttribute("x", `${this.leftSpace - (this.textbbox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH) / 2}`);
 
+        this.trueLabel.setAttribute("x", `${this.leftSpace + CONFIG.LINE_WIDTH}`);
+        this.trueLabel.setAttribute("y", `${this.textbbox.height + 3 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+
+        this.falseLabel.setAttribute("x", `${this.leftSpace - (this.textbbox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH) / 2}`);
+        this.falseLabel.setAttribute("y", `${(this.textbbox.height + CONFIG.LINE_WIDTH) / 2 + CONFIG.TEXT_MARGIN}`);
+
+
         this.skipLoopLine.setAttribute("fill", "none");
         this.skipLoopLine.setAttribute("stroke", "red");
         this.skipLoopLine.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
-        this.skipLoopLine.setAttribute("marker-end","url(#arrowEnd)");
+        // this.skipLoopLine.setAttribute("marker-end","url(#arrowEnd)");
         this.skipLoopLine.setAttribute("marker-start","url(#arrowStart)");
 
         this.restartLoopLine.setAttribute("fill", "none");
         this.restartLoopLine.setAttribute("stroke", "green");
         this.restartLoopLine.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
         this.restartLoopLine.setAttribute("marker-end","url(#arrowEnd)");
-        this.restartLoopLine.setAttribute("marker-start","url(#arrowStart)");
+        // this.restartLoopLine.setAttribute("marker-start","url(#arrowStart)");
 
         this.loopBoxShape.setAttribute("points", this.getLoopBoxPoints());
-        requestAnimationFrame((): void => {
-            this.skipLoopLine.setAttribute("points", this.getSkipLinePoints());
-            this.restartLoopLine.setAttribute("points", this.getRestartLinePoints());
-        });
+        this.skipLoopLine.setAttribute("points", this.getSkipLinePoints());
+        this.restartLoopLine.setAttribute("points", this.getRestartLinePoints());
+
     }
 
     protected abstract MAINBOX_COLOUR: string;
@@ -532,8 +563,9 @@ abstract class GeneralLoopCode extends Code {
         return [
             `${maxLeftSize - widthLoopBox / 2},${heightLoopBox / 2}`,
             `${CONFIG.LINE_WIDTH / 2},${heightLoopBox / 2}`,
-            `${CONFIG.LINE_WIDTH / 2},${heightLoopBox / 2 + contentHeight + 2.5 * CONFIG.SHAPE_MARGIN + CONFIG.LINE_WIDTH / 2}`,
-            `${maxLeftSize},${heightLoopBox / 2 + contentHeight + 2.5 * CONFIG.SHAPE_MARGIN + CONFIG.LINE_WIDTH / 2}`
+            `${CONFIG.LINE_WIDTH / 2},${heightLoopBox / 2 + contentHeight + 2 * CONFIG.SHAPE_MARGIN + CONFIG.LINE_WIDTH / 2}`,
+            `${maxLeftSize},${heightLoopBox / 2 + contentHeight + 2 * CONFIG.SHAPE_MARGIN + CONFIG.LINE_WIDTH / 2}`,
+            `${maxLeftSize},${heightLoopBox / 2 + contentHeight + 3 * CONFIG.SHAPE_MARGIN + CONFIG.LINE_WIDTH}`
         ].join(" ");
     }
 
@@ -552,15 +584,14 @@ abstract class GeneralLoopCode extends Code {
         const maxLeftSize: number = Math.max(widthLoopBox / 2, this.leftSpace);
         const maxWidth: number = Math.max(widthLoopBox, this.width);
         return [
-            `${maxLeftSize},${heightLoopBox / 2 + contentHeight + 1.5 * CONFIG.SHAPE_MARGIN}`,
-            `${maxWidth - CONFIG.LINE_WIDTH / 2},${heightLoopBox / 2 + contentHeight + 1.5 * CONFIG.SHAPE_MARGIN}`,
+            `${maxLeftSize},${heightLoopBox / 2 + contentHeight + CONFIG.SHAPE_MARGIN + CONFIG.LINE_WIDTH}`,
+            `${maxWidth - CONFIG.LINE_WIDTH / 2},${heightLoopBox / 2 + contentHeight + CONFIG.SHAPE_MARGIN + CONFIG.LINE_WIDTH}`,
             `${maxWidth - CONFIG.LINE_WIDTH / 2},${heightLoopBox / 2}`,
             `${widthLoopBox / 2 + maxLeftSize},${heightLoopBox / 2}`
         ].join(" ");
     }
 
     get export(): Export {
-
         return {
             type: this.type,
             content: {...emptyContent(),"Looped": this.container.export},
@@ -573,9 +604,9 @@ abstract class GeneralLoopCode extends Code {
     }
 
     get height(): number {
-        return (this.textbbox.height + 2 * CONFIG.TEXT_MARGIN) + 3 *CONFIG.LINE_WIDTH +
+        return (this.textbbox.height + 2 * CONFIG.TEXT_MARGIN) + 2 *CONFIG.LINE_WIDTH +
             this.container.height +
-            3 * CONFIG.SHAPE_MARGIN;
+            2 * CONFIG.SHAPE_MARGIN;
     }
 
     set text(newText: string) {
@@ -589,12 +620,10 @@ abstract class GeneralLoopCode extends Code {
         return this.loopText.textContent || ""
     }
 
-    getContextMenuMap():Map<string,() => void> {
-        return super.getContextMenuMap()
+    getContextMenuMap(e:MouseEvent):Map<string,() => void> {
+        return super.getContextMenuMap(e)
             .set("Add to start of loop", () => {
-                new Creator((e:Export) => {
-                    Creator.exportToCode(e, this.container, 0);
-                })
+                openAddMenu(c(e.pageX,e.pageY),this.container, 0);
             }).set("Clear", () => {
                 this.container.clear();
             });
@@ -632,6 +661,8 @@ class DoWhileLoop extends Code {
     private loopBBox: DOMRect = this.loopBox.getBBox();
     public container: CodeContainer;
     private restartLine = document.createElementNS(SVG_NS, "polyline");
+    private trueLabel:SVGTextElement = document.createElementNS(SVG_NS, "text");
+    private falseLabel:SVGTextElement = document.createElementNS(SVG_NS, "text");
     /*
         TODO:
           - Add arrows to restart line and after loop box
@@ -647,6 +678,16 @@ class DoWhileLoop extends Code {
         this.doText.setAttribute("dominant-baseline", "hanging");
         this.doText.setAttribute("x", `${2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
         this.doText.setAttribute("y", `${CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+
+        this.trueLabel.setAttribute("text-anchor", "start");
+        this.trueLabel.setAttribute("dominant-baseline","hanging");
+        this.trueLabel.textContent = "true";
+        this.falseLabel.setAttribute("text-anchor", "end");
+        this.falseLabel.textContent = "false";
+        this.falseLabel.setAttribute("dominant-baseline","ideographic");
+
+        this._innerElement.appendChild(this.trueLabel);
+        this._innerElement.appendChild(this.falseLabel);
 
         this._innerElement.appendChild(this.doBox);
         this.doBox.classList.add("DoWhileLoopDoBox");
@@ -708,7 +749,16 @@ class DoWhileLoop extends Code {
         const wDo: number = (this.doTextBBox.width + 4 * CONFIG.TEXT_MARGIN) + 2 * CONFIG.LINE_WIDTH;
         const hDo: number = this.doBBox.height + 2 * CONFIG.LINE_WIDTH;
 
+        
         const cPoint = Math.max(0,wLoop / 2, wDo / 2, this.container.leftSpace);
+
+        this.trueLabel.setAttribute("x",`${cPoint + wLoop / 2}` );
+        this.trueLabel.setAttribute("y",`${hDo + this.container.height + hLoop / 2 }` );
+
+        this.falseLabel.setAttribute("x",`${cPoint - CONFIG.LINE_WIDTH}` );
+        this.falseLabel.setAttribute("y",`${hDo + this.container.height + hLoop + CONFIG.LINE_WIDTH}` );
+
+
         this.loopShape.setAttribute("points", this.getLoopBoxPoints());
         this.doBox.setAttribute("x",`${cPoint - wDo / 2}`);
         this.doBox.setAttribute("y",`${0}`);
@@ -718,6 +768,7 @@ class DoWhileLoop extends Code {
         this.loopBox.setAttribute("height",`${this.textBBox.height + 3 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
         this.loopBox.setAttribute("width",`${this.textBBox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
         this.restartLine.setAttribute("points", this.getRestartPoints());
+
     }
     set text(newText:string) {
         this.loopText.innerHTML = newText.replace("\n","<br/>");
@@ -801,12 +852,10 @@ class DoWhileLoop extends Code {
             text: this.loopText.textContent || ""
         }
     }
-    getContextMenuMap():Map<string,() => void> {
-        return super.getContextMenuMap()
+    getContextMenuMap(e:MouseEvent):Map<string,() => void> {
+        return super.getContextMenuMap(e)
             .set("Add to start of loop", () => {
-                new Creator((e:Export) => {
-                    Creator.exportToCode(e, this.container, 0);
-                })
+                openAddMenu(c(e.pageX,e.pageY),this.container, 0);
             }).set("Clear", () => {
                 this.container.clear();
             });
@@ -824,6 +873,9 @@ class IfStatementCode extends Code {
     private _falseLine2: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
     private _trueLine1: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
     private _trueLine2: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
+    
+    private trueLabel:SVGTextElement = document.createElementNS(SVG_NS, "text");
+    private falseLabel:SVGTextElement = document.createElementNS(SVG_NS, "text");
     /*
         TODO:
           - add labels 'True' and 'False'
@@ -837,6 +889,15 @@ class IfStatementCode extends Code {
         this.ifBox.appendChild(this.ifBoxShape);
         this.ifBox.appendChild(this.textBox);
         this._innerElement.appendChild(this.ifBox);
+        this._innerElement.appendChild(this.trueLabel);
+        this._innerElement.appendChild(this.falseLabel);
+        
+        this.trueLabel.setAttribute("text-anchor", "start");
+        this.trueLabel.setAttribute("dominant-baseline","ideographic");
+        this.trueLabel.textContent = "true";
+        this.falseLabel.setAttribute("text-anchor", "end");
+        this.falseLabel.textContent = "false";
+        this.falseLabel.setAttribute("dominant-baseline","ideographic");
 
         this.textBox.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
         this.textBox.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
@@ -860,7 +921,9 @@ class IfStatementCode extends Code {
             line.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
         });
         [this._trueLine1,this._falseLine1].forEach(line=>line.setAttribute("marker-start","url(#arrowStart)"));
-
+        
+        this.textBox.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
+        this.textBox.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
         this.ifBox.ondblclick = this.ifBox.oncontextmenu = this.menuFunction.bind(this);
         this._innerElement.ondblclick = this._innerElement.oncontextmenu = (e: MouseEvent) => {
         };
@@ -873,9 +936,12 @@ class IfStatementCode extends Code {
 
     innerUpdate(): void {
         this.ifBoxShape.setAttribute("points", this.getIfBoxPoints());
-        this.textBox.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
-        this.textBox.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
         this.ifBox.setAttribute("x", `${this.leftSpace - ((this.textBBox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH) / 2)}`);
+        
+        this.trueLabel.setAttribute("x",`${this.leftSpace + (this.textBBox.width + 2 * CONFIG.TEXT_MARGIN)/2}`);
+        this.trueLabel.setAttribute("y",`${this.textBBox.height + 2 * CONFIG.TEXT_MARGIN}`);
+        this.falseLabel.setAttribute("x",`${this.leftSpace - (this.textBBox.width + 2 * CONFIG.TEXT_MARGIN)/2}`);
+        this.falseLabel.setAttribute("y",`${this.textBBox.height + 2 * CONFIG.TEXT_MARGIN}`);
         this.arrangeContainers();
     }
 
@@ -997,20 +1063,16 @@ class IfStatementCode extends Code {
         ].join(" ")
     }
 
-    getContextMenuMap():Map<string,() => void> {
-        return super.getContextMenuMap()
+    getContextMenuMap(e:MouseEvent):Map<string,() => void> {
+        return super.getContextMenuMap(e)
             .set("Add to start of true block", () => {
-                new Creator((e:Export) => {
-                    Creator.exportToCode(e, this._trueContent, 0);
-                })
+                openAddMenu(c(e.pageX,e.pageY),this._trueContent, 0)
             })
             .set("Clear true block", () => {
                 this._trueContent.clear();
             })
             .set("Add to start of false block", () => {
-                new Creator((e:Export) => {
-                    Creator.exportToCode(e, this._falseContent, 0);
-                })
+                openAddMenu(c(e.pageX,e.pageY),this._falseContent, 0)
             }).set("Clear false block", () => {
                 this._falseContent.clear();
             });
@@ -1094,16 +1156,14 @@ class StartNode {
     menuFunction(e: MouseEvent): void {
         e.preventDefault();
         const parent:CodeContainer = this.container;
-        const map:Map<string,()=>void> = this.getContextMenuMap()
+        const map:Map<string,()=>void> = this.getContextMenuMap(e)
         CustomMenu.show(e.pageX, e.pageY, map);
     };
-    getContextMenuMap():Map<string,() => void> {
+    getContextMenuMap(e:MouseEvent):Map<string,() => void> {
         const parent:CodeContainer = this.container;
         return new Map<string, () => void>()
             .set("Add", (() => {
-                new Creator((e:Export) => {
-                    Creator.exportToCode(e, this.container, 0);
-                });
+                openAddMenu(c(e.pageX,e.pageY),this.container, 0)
             }));
     }
 }
@@ -1247,7 +1307,7 @@ class Main {
 let main: Main;
 
 function init() {
-    main = new Main(document.body);
+    main = new Main(document.querySelector("#flowchartcontainer") || document.body);
     try {
         const url = new URLSearchParams(window.location.search);
         if (url.has("init")) {

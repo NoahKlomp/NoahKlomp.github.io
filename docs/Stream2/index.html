@@ -8,7 +8,7 @@
         #0:hover {
             background-color: rgba(255, 0, 0, 0.2);
         }
-        .prevent-select {
+        .prevent-select, svg {
             -webkit-user-select: none; /* Safari */
             -ms-user-select: none; /* IE 10 and IE 11 */
             user-select: none; /* Standard syntax */
@@ -16,8 +16,38 @@
         .clickable {
             cursor: pointer;
         }
+        #flowchartcontainer {
+            overflow: auto;
+            max-height: 100%;
+            padding-bottom: 50px;
+        }
+        #actingButtons {
+            height:50px;
+            /* width:100%; */
+            background-color: gray;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right:0;
+            display: flex;
+            
+        }
+        
+        button {
+            margin: 10px;
+            background-color: honeydew;
+            color: black;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
 
     </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@latest/build/styles/atom-one-dark.min.css">
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@latest/build/highlight.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.11.1/build/languages/python.min.js"></script>
     <!-- <script src="js/FlowChartBuilder/base.js" type="module"></script>
     <script src="js/FlowChartBuilder/base.js" type="module"></script> -->
 </head>
@@ -33,10 +63,17 @@
           - To Python / Java Code button
           - Maybe Dutch version
     -->
+    <div id="flowchartcontainer"></div>
     <script src="./js/Three/PopUp.js"></script>
     <script src="./js/Three/Creator.js"></script>
+    <script src="./js/Three/CodeMaker.js"></script>
     <script src="./js/Three/User.js"></script>
     <script src="./js/Three/Code.js"></script>
     <script src="./js/Three/Editor.js"></script>
+    <div id="actingButtons" class="funButtons">
+        <button onclick="new CopyCodePopUp('python',main.export)">To Python Comments</button>
+        <button onclick="new CopyCodePopUp('java',main.export)">To Java Comments</button>
+        <button>Share</button>
+    </div>
 </body>
 </html>
