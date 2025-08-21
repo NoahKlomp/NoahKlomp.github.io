@@ -613,13 +613,11 @@ class DoWhileLoop extends Code {
         this.restartLine.setAttribute("points", this.getRestartPoints());
     }
     set text(newText) {
-        this.loopText.innerHTML = newText.replace("\n", "<br/>");
+        this.loopText.textContent = newText.replace("\n", "<br/>");
         requestAnimationFrame(() => {
             this.textBBox = this.loopText.getBBox();
-            requestAnimationFrame(() => {
-                this.loopBBox = this.loopBox.getBBox();
-                this.update();
-            });
+            this.loopBBox = this.loopBox.getBBox();
+            this.update();
         });
     }
     get text() {

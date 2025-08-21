@@ -82,10 +82,10 @@ class Creator extends PopUp {
                     if (export1.content["True"] && export1.content["False"]) {
                         const element = new IfStatementCode(parent, index, export1.text);
                         export1.content['True'].forEach((value, i) => {
-                            Creator.exportToCode(value, element._falseContent, i);
+                            Creator.exportToCode(value, element._trueContent, i);
                         });
                         export1.content['False'].forEach((value, i) => {
-                            Creator.exportToCode(value, element._trueContent, i);
+                            Creator.exportToCode(value, element._falseContent, i);
                         });
                         return element;
                     }
