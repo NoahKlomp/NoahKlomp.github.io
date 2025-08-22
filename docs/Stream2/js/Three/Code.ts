@@ -129,7 +129,7 @@ class ConnectingLine {
         this.line.setAttribute("marker-mid", "url(#arrow)");
         this.line.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
         this.setColour(CONFIG.LINE_COLOUR);
-        this.element.ondblclick = this.element.oncontextmenu = this.menuFunction.bind(this);
+        this.element.ondblclick = this.element.onclick = this.element.oncontextmenu = this.menuFunction.bind(this);
     }
     setMid(cor: Coordinates): ConnectingLine {
         this.element.setAttribute("x",`${cor.x - 2 * CONFIG.LINE_WIDTH}`);
