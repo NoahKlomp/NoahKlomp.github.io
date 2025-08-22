@@ -18,6 +18,9 @@ header {
 header > * {
     padding:20px;
 }
+menu {
+    display:flex;
+}
 menu > li {
     list-style: none;
     display: block;
