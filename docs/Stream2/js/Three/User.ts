@@ -64,3 +64,5 @@ class CustomMenu {
 
 CustomMenu.initialize();
 document.onclick = (): void => {CustomMenu.hide()}
+
+

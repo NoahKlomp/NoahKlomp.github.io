@@ -306,7 +306,7 @@ abstract class Code implements Updatable {
             openAddMenu(c(e.pageX,e.pageY),this.parent, this.index + 1);
         }));
         map.set("Edit Text", (() => {
-            new TextEditor(this,(newText:string) => {
+            new TextEditor(this,e, (newText:string) => {
                 this.text = newText;
             });
         }));
@@ -453,6 +453,8 @@ abstract class GeneralLoopCode extends Code {
         this.loopBox.appendChild(this.loopBoxShape);
         this.loopBox.appendChild(this.loopText);
         this.loopBox.setAttribute("id", `loopbox_${ids.get()}`);
+        this.loopBox.classList.add("loopbox");
+        this.loopBox.classList.add(type+"loopbox");
 
         this._innerElement.appendChild(this.loopBox);
         this._innerElement.setAttribute("class", "loop_" + type);

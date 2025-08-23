@@ -1,12 +1,20 @@
-interface Editor {}
+abstract class Editor extends PopUp {}
 
-class TextEditor extends PopUp implements Editor {
+class TextEditor extends Editor {
     textInput:HTMLTextAreaElement = document.createElement("textarea");
     submitButton:HTMLButtonElement = document.createElement("button");
-    constructor(current: Code, doAfter: (newText: string) => void) {
+    constructor(current: Code,e:MouseEvent, doAfter: (newText: string) => void) {
         super();
         if (current instanceof StatementCode) {
             this.setBG(CONFIG.STATEMENT_COLOUR);
+        } else if (current instanceof IfStatementCode) {
+            this.setBG(CONFIG.IF_SHAPE_COLOUR);
+        } else if (current instanceof ForLoopCode) {
+            this.setBG(CONFIG.FOR_SHAPE_COLOUR);
+        } else if (current instanceof WhileLoopCode) {
+            this.setBG(CONFIG.WHILE_SHAPE_COLOUR);
+        } else if (current instanceof DoWhileLoop) {
+            this.setBG(CONFIG.DO_WHILE_SHAPE_COLOUR);
         }
         //todo: finish
         this.textInput.innerText = current.text;
@@ -17,7 +25,8 @@ class TextEditor extends PopUp implements Editor {
             doAfter(this.textInput.value);
             this.close();
         }
-        this.setFullScreen();
+        this.setSize("fit-content","fit-content");
+        this.setPosition(e.pageX, e.pageY);
         this.open();
 
 

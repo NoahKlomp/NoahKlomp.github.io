@@ -24,10 +24,10 @@ class PopUp {
         this.closeButton.className = 'close-button';
         this.closeButton.style.display = 'block';
         this.closeButton.style.background = "red";
-        this.closeButton.style.position = "fixed";
-        this.closeButton.style.right = "10px";
-        this.closeButton.style.top = "10px";
-        this.closeButton.style.padding = `${CONFIG.TEXT_MARGIN}px`;
+        this.closeButton.style.position = "absolute";
+        this.closeButton.style.right = "5px";
+        this.closeButton.style.top = "5px";
+        this.closeButton.style.padding = `${CONFIG.LINE_WIDTH}px`;
         this.closeButton.onclick = this.close.bind(this);
     }
     setBG(background) {
@@ -51,8 +51,8 @@ class PopUp {
         PopUp.current = null;
     }
     setPosition(x, y) {
-        this.element.style.left = Number.isFinite(x.toString()) ? `${x}px` : x.toString();
-        this.element.style.top = Number.isFinite(y.toString()) ? `${y}px` : y.toString();
+        this.element.style.left = Number.isFinite(x) ? `${x}px` : x.toString();
+        this.element.style.top = Number.isFinite(y) ? `${y}px` : y.toString();
     }
     setFullScreen() {
         this.element.style.left = '50px';
