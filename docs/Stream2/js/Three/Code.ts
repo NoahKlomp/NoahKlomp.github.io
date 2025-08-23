@@ -936,9 +936,9 @@ class IfStatementCode extends Code {
         this.ifBoxShape.setAttribute("points", this.getIfBoxPoints());
         this.ifBox.setAttribute("x", `${this.leftSpace - ((this.textBBox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH) / 2)}`);
         
-        this.trueLabel.setAttribute("x",`${this.leftSpace + (this.textBBox.width + 2 * CONFIG.TEXT_MARGIN)/2}`);
+        this.trueLabel.setAttribute("x",`${this.leftSpace + (this.textBBox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH)/2}`);
         this.trueLabel.setAttribute("y",`${this.textBBox.height + 2 * CONFIG.TEXT_MARGIN}`);
-        this.falseLabel.setAttribute("x",`${this.leftSpace - (this.textBBox.width + 2 * CONFIG.TEXT_MARGIN)/2}`);
+        this.falseLabel.setAttribute("x",`${this.leftSpace - (this.textBBox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH)/2}`);
         this.falseLabel.setAttribute("y",`${this.textBBox.height + 2 * CONFIG.TEXT_MARGIN}`);
         this.arrangeContainers();
     }
@@ -1331,7 +1331,7 @@ function updateURLParams(params: Record<string, string>): void {
         if (value) searchParams.set(key, value); // Only set non-empty values
     }
     const newURL = `${window.location.pathname}?${searchParams.toString()}`;
-    history.pushState(params, '', newURL); // Update URL without reloading
+    history.replaceState(params, '', newURL); // Update URL without reloading
 }
 
 
