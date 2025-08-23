@@ -567,8 +567,8 @@ class DoWhileLoop extends Code {
         this.text = text;
         this.loopText.setAttribute("text-anchor", "start");
         this.loopText.setAttribute("dominant-baseline", "hanging");
-        this.loopText.setAttribute("x", `${CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
-        this.loopText.setAttribute("y", `${CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+        this.loopText.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
+        this.loopText.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
         this.loopBox.ondblclick = this.loopBox.oncontextmenu = this.menuFunction.bind(this);
         this.doBox.ondblclick = this.doBox.oncontextmenu = this.menuFunction.bind(this);
         this._innerElement.ondblclick = this._innerElement.oncontextmenu = (e) => { };
@@ -600,7 +600,7 @@ class DoWhileLoop extends Code {
         const cPoint = Math.max(0, wLoop / 2, wDo / 2, this.container.leftSpace);
         this.trueLabel.setAttribute("x", `${cPoint + wLoop / 2}`);
         this.trueLabel.setAttribute("y", `${hDo + this.container.height + hLoop / 2}`);
-        this.falseLabel.setAttribute("x", `${cPoint - CONFIG.LINE_WIDTH}`);
+        this.falseLabel.setAttribute("x", `${cPoint - 3 * CONFIG.LINE_WIDTH}`);
         this.falseLabel.setAttribute("y", `${hDo + this.container.height + hLoop + CONFIG.LINE_WIDTH}`);
         this.loopShape.setAttribute("points", this.getLoopBoxPoints());
         this.doBox.setAttribute("x", `${cPoint - wDo / 2}`);
@@ -608,7 +608,7 @@ class DoWhileLoop extends Code {
         this.container.setTopMid(c(cPoint, hDo));
         this.loopBox.setAttribute("x", `${cPoint - wLoop / 2}`);
         this.loopBox.setAttribute("y", `${hDo + this.container.height}`);
-        this.loopBox.setAttribute("height", `${this.textBBox.height + 3 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+        this.loopBox.setAttribute("height", `${this.textBBox.height + 3 * CONFIG.TEXT_MARGIN + 1.5 * CONFIG.LINE_WIDTH}`);
         this.loopBox.setAttribute("width", `${this.textBBox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
         this.restartLine.setAttribute("points", this.getRestartPoints());
     }
@@ -616,7 +616,10 @@ class DoWhileLoop extends Code {
         this.loopText.textContent = newText.replace("\n", "<br/>");
         requestAnimationFrame(() => {
             this.textBBox = this.loopText.getBBox();
-            this.loopBBox = this.loopBox.getBBox();
+            this.loopBBox = {
+                height: this.textBBox.height + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH,
+                width: this.textBBox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH
+            };
             this.update();
         });
     }
@@ -637,14 +640,14 @@ class DoWhileLoop extends Code {
      * @private
      */
     getLoopBoxPoints() {
-        const height = this.textBBox.height + 2 * CONFIG.TEXT_MARGIN;
-        const width = this.textBBox.width + 2 * CONFIG.TEXT_MARGIN;
+        const height = this.textBBox.height + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH;
+        const width = this.textBBox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH;
         return [
             `${CONFIG.LINE_WIDTH / 2},${CONFIG.LINE_WIDTH / 2}`,
-            `${width - CONFIG.LINE_WIDTH},${CONFIG.LINE_WIDTH / 2}`,
-            `${width - CONFIG.LINE_WIDTH},${height - CONFIG.LINE_WIDTH / 2}`,
-            `${width / 2 + CONFIG.LINE_WIDTH},${height + CONFIG.TEXT_MARGIN}`,
-            `${CONFIG.LINE_WIDTH / 2},${height - CONFIG.LINE_WIDTH / 2}`
+            `${width - CONFIG.LINE_WIDTH / 2},${CONFIG.LINE_WIDTH / 2}`,
+            `${width - CONFIG.LINE_WIDTH / 2},${height - CONFIG.TEXT_MARGIN}`,
+            `${(width + CONFIG.LINE_WIDTH) / 2},${height + CONFIG.TEXT_MARGIN}`,
+            `${CONFIG.LINE_WIDTH / 2},${height - CONFIG.TEXT_MARGIN}`
         ].join(" ");
     }
     getRestartPoints() {
@@ -1065,14 +1068,20 @@ class Main {
 let main;
 function init() {
     main = new Main(document.querySelector("#flowchartcontainer") || document.body);
+    const recursiveContentAdder = (content, i, container) => {
+        if (i < content.length) {
+            Creator.exportToCode(content[i], container, i);
+            requestAnimationFrame(() => {
+                recursiveContentAdder(content, i + 1, container);
+            });
+        }
+    };
     try {
         const url = new URLSearchParams(window.location.search);
         if (url.has("init")) {
             const content = JSON.parse(url.get("init") || "{}");
             if (content.type == "Program") {
-                content.content.forEach((code, i) => {
-                    Creator.exportToCode(code, main.container, i);
-                });
+                recursiveContentAdder(content.content, 0, main.container);
             }
             else
                 throw Error();

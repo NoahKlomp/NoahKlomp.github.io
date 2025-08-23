@@ -651,14 +651,14 @@ class ForLoopCode extends GeneralLoopCode {
 class DoWhileLoop extends Code {
     protected doBox: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
     private doText: SVGTextElement = document.createElementNS(SVG_NS, "text");
-    private doTextBBox: DOMRect = this.doText.getBBox();
-    private doBBox: DOMRect = this.doBox.getBBox();
+    private doTextBBox: {height:number, width:number} = this.doText.getBBox();
+    private doBBox: {height:number, width:number} = this.doBox.getBBox();
     private doShape: SVGPolygonElement = document.createElementNS(SVG_NS, "polygon");
     protected loopBox: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
     private loopText: SVGTextElement = document.createElementNS(SVG_NS, "text");
-    private textBBox:DOMRect = this.loopText.getBBox();
+    private textBBox:{height:number, width:number} = this.loopText.getBBox();
     private loopShape: SVGPolygonElement = document.createElementNS(SVG_NS, "polygon");
-    private loopBBox: DOMRect = this.loopBox.getBBox();
+    private loopBBox: {height:number, width:number} = this.loopBox.getBBox();
     public container: CodeContainer;
     private restartLine = document.createElementNS(SVG_NS, "polyline");
     private trueLabel:SVGTextElement = document.createElementNS(SVG_NS, "text");
@@ -712,8 +712,8 @@ class DoWhileLoop extends Code {
         this.text = text;
         this.loopText.setAttribute("text-anchor", "start");
         this.loopText.setAttribute("dominant-baseline", "hanging");
-        this.loopText.setAttribute("x", `${CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
-        this.loopText.setAttribute("y", `${CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+        this.loopText.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
+        this.loopText.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
         this.loopBox.ondblclick = this.loopBox.oncontextmenu = this.menuFunction.bind(this);
         this.doBox.ondblclick = this.doBox.oncontextmenu = this.menuFunction.bind(this);
         this._innerElement.ondblclick = this._innerElement.oncontextmenu = (e: MouseEvent) => {};
@@ -755,7 +755,7 @@ class DoWhileLoop extends Code {
         this.trueLabel.setAttribute("x",`${cPoint + wLoop / 2}` );
         this.trueLabel.setAttribute("y",`${hDo + this.container.height + hLoop / 2 }` );
 
-        this.falseLabel.setAttribute("x",`${cPoint - CONFIG.LINE_WIDTH}` );
+        this.falseLabel.setAttribute("x",`${cPoint - 3 * CONFIG.LINE_WIDTH}` );
         this.falseLabel.setAttribute("y",`${hDo + this.container.height + hLoop + CONFIG.LINE_WIDTH}` );
 
 
@@ -765,7 +765,7 @@ class DoWhileLoop extends Code {
         this.container.setTopMid(c(cPoint, hDo));
         this.loopBox.setAttribute("x",`${cPoint - wLoop / 2}`);
         this.loopBox.setAttribute("y",`${hDo + this.container.height}`);
-        this.loopBox.setAttribute("height",`${this.textBBox.height + 3 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+        this.loopBox.setAttribute("height",`${this.textBBox.height + 3 * CONFIG.TEXT_MARGIN + 1.5 * CONFIG.LINE_WIDTH}`);
         this.loopBox.setAttribute("width",`${this.textBBox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
         this.restartLine.setAttribute("points", this.getRestartPoints());
 
@@ -774,7 +774,10 @@ class DoWhileLoop extends Code {
         this.loopText.textContent = newText.replace("\n","<br/>");
         requestAnimationFrame(()=>{
             this.textBBox = this.loopText.getBBox();
-            this.loopBBox = this.loopBox.getBBox();
+            this.loopBBox ={
+                height : this.textBBox.height + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH,
+                width: this.textBBox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH
+            }
             this.update();
         });
     }
@@ -798,18 +801,18 @@ class DoWhileLoop extends Code {
      * @private
      */
     private getLoopBoxPoints(): string {
-        const height: number = this.textBBox.height + 2 * CONFIG.TEXT_MARGIN;
-        const width: number = this.textBBox.width + 2 * CONFIG.TEXT_MARGIN;
+        const height: number = this.textBBox.height + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH;
+        const width: number = this.textBBox.width + 2 * CONFIG.TEXT_MARGIN  + CONFIG.LINE_WIDTH;
         return [
             `${CONFIG.LINE_WIDTH / 2},${CONFIG.LINE_WIDTH / 2}`,
-            `${width - CONFIG.LINE_WIDTH},${CONFIG.LINE_WIDTH / 2}`,
-            `${width - CONFIG.LINE_WIDTH},${height - CONFIG.LINE_WIDTH / 2}`,
-            `${width / 2 + CONFIG.LINE_WIDTH},${height + CONFIG.TEXT_MARGIN}`,
-            `${CONFIG.LINE_WIDTH / 2},${height - CONFIG.LINE_WIDTH / 2}`
+            `${width - CONFIG.LINE_WIDTH/2},${CONFIG.LINE_WIDTH / 2}`,
+            `${width - CONFIG.LINE_WIDTH/2},${height - CONFIG.TEXT_MARGIN}`,
+            `${(width+ CONFIG.LINE_WIDTH) / 2},${height + CONFIG.TEXT_MARGIN}`,
+            `${CONFIG.LINE_WIDTH / 2},${height - CONFIG.TEXT_MARGIN}`
         ].join(" ")
     }
 
-    getRestartPoints(): string {
+    private getRestartPoints(): string {
         const heightDoBox = this.doBBox.height;
         const widthDoBox = this.doBBox.width;
         const heightLoopBox = this.loopBBox.height;
@@ -1306,14 +1309,20 @@ let main: Main;
 
 function init() {
     main = new Main(document.querySelector("#flowchartcontainer") || document.body);
+    const recursiveContentAdder = (content: Export[], i:number, container:CodeContainer) => {
+        if (i < content.length) {
+            Creator.exportToCode(content[i],container,i);
+            requestAnimationFrame(()=>{
+                recursiveContentAdder(content, i+1, container);
+            });
+        }
+    }
     try {
         const url = new URLSearchParams(window.location.search);
         if (url.has("init")) {
             const content = JSON.parse(url.get("init") || "{}");
             if (content.type == "Program") {
-                content.content.forEach((code:Export, i:number) => {
-                    Creator.exportToCode(code,main.container, i);
-                })
+                recursiveContentAdder(content.content,0,main.container);
             } else throw Error();
         } else
             throw Error();
