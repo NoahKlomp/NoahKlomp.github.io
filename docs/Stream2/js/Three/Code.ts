@@ -279,9 +279,6 @@ abstract class Code implements Updatable {
         this._innerElement.setAttribute("id", `${this.constructor.name}_inner_${this.id}`);
         this._innerElement.classList.add(`${this.constructor.name}`);
 
-        this._innerElement.oncontextmenu =
-            this._innerElement.ondblclick = this.menuFunction.bind(this);
-
         requestAnimationFrame(() => {
             parent.add(this, index);
             requestAnimationFrame(() => {
@@ -318,7 +315,7 @@ abstract class Code implements Updatable {
         return this._innerElement.getBBox().width;
     }
 
-    get innerHeight(): number {
+    protected get innerHeight(): number {
         return this._innerElement.getBBox().height;
     };
 
@@ -375,6 +372,10 @@ class StatementCode extends Code {
         this._innerElement.appendChild(this._rectangle);
         this._innerElement.appendChild(this._textElement);
         this.text = text;
+        
+        this._innerElement.oncontextmenu =
+            this._innerElement.ondblclick = this.menuFunction.bind(this);
+        this._innerElement.onclick = (e:MouseEvent)=>new TextEditor(this,e, (newText:string) => {this.text = newText;});
     }
 
     get export(): Export {
@@ -463,6 +464,7 @@ abstract class GeneralLoopCode extends Code {
         this._innerElement.appendChild(this.falseLabel);
         this._innerElement.appendChild(this.trueLabel);
         this.loopBox.ondblclick = this.loopBox.oncontextmenu = this.menuFunction.bind(this);
+        this.loopBox.onclick = (e:MouseEvent)=>new TextEditor(this,e, (newText:string) => {this.text = newText;});
         this._innerElement.ondblclick = this._innerElement.oncontextmenu = (e: MouseEvent) => {};
 
         this.trueLabel.textContent = "true";
@@ -672,30 +674,9 @@ class DoWhileLoop extends Code {
      */
     constructor(parent: CodeContainer, index: number, text: string) {
         super(parent, index);
-        this.doBox.appendChild(this.doShape);
-        this.doBox.appendChild(this.doText);
-        this.doText.textContent = "Do";
-
-        this.doText.setAttribute("text-anchor", "start");
-        this.doText.setAttribute("dominant-baseline", "hanging");
-        this.doText.setAttribute("x", `${2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
-        this.doText.setAttribute("y", `${CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
-
-        this.trueLabel.setAttribute("text-anchor", "start");
-        this.trueLabel.setAttribute("dominant-baseline","hanging");
-        this.trueLabel.textContent = "true";
-        this.falseLabel.setAttribute("text-anchor", "end");
-        this.falseLabel.textContent = "false";
-        this.falseLabel.setAttribute("dominant-baseline","ideographic");
-
-        this._innerElement.appendChild(this.trueLabel);
-        this._innerElement.appendChild(this.falseLabel);
-
-        this._innerElement.appendChild(this.doBox);
-        this.doBox.classList.add("DoWhileLoopDoBox");
-
+        
         this.container = new CodeContainer(this._innerElement, this);
-
+        
         this.loopBox.appendChild(this.loopShape);
         [this.doShape, this.loopShape].forEach(shape => {
             shape.setAttribute("fill", CONFIG.DO_WHILE_SHAPE_COLOUR);
@@ -707,7 +688,21 @@ class DoWhileLoop extends Code {
         this.restartLine.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
         this.restartLine.setAttribute("marker-end","url(#arrowEnd)");
         this.restartLine.setAttribute("marker-start","url(#arrowStart)");
+        this._innerElement.appendChild(this.restartLine);
+        
+        this.doBox.appendChild(this.doShape);
+        this.doBox.appendChild(this.doText);
+        this.doText.textContent = "Do";
+        
+        this.doText.setAttribute("text-anchor", "start");
+        this.doText.setAttribute("dominant-baseline", "hanging");
+        this.doText.setAttribute("x", `${2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+        this.doText.setAttribute("y", `${CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+        
+        
+        this._innerElement.appendChild(this.doBox);
 
+        this.doBox.classList.add("DoWhileLoopDoBox");
         this.loopBox.appendChild(this.loopText);
         this._innerElement.appendChild(this.loopBox);
         this.loopBox.classList.add("DoWhileLoopBox");
@@ -717,13 +712,22 @@ class DoWhileLoop extends Code {
         this.loopText.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
         this.loopText.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
         this.loopBox.ondblclick = this.loopBox.oncontextmenu = this.menuFunction.bind(this);
+        this.loopBox.onclick = (e:MouseEvent)=>new TextEditor(this,e, (newText:string) => {this.text = newText;});
         this.doBox.ondblclick = this.doBox.oncontextmenu = this.menuFunction.bind(this);
         this._innerElement.ondblclick = this._innerElement.oncontextmenu = (e: MouseEvent) => {};
-
-        this._innerElement.appendChild(this.restartLine);
+        
         this._innerElement.classList.add("DoWhileLoop");
-
-
+        
+        
+        this.trueLabel.setAttribute("text-anchor", "start");
+        this.trueLabel.setAttribute("dominant-baseline","hanging");
+        this.trueLabel.textContent = "true";
+        this.falseLabel.setAttribute("text-anchor", "end");
+        this.falseLabel.textContent = "false";
+        this.falseLabel.setAttribute("dominant-baseline","ideographic");
+        
+        this._innerElement.appendChild(this.trueLabel);
+        this._innerElement.appendChild(this.falseLabel);
 
         requestAnimationFrame(() =>{
             this.doTextBBox = this.doText.getBBox();
@@ -777,7 +781,7 @@ class DoWhileLoop extends Code {
         requestAnimationFrame(()=>{
             this.textBBox = this.loopText.getBBox();
             this.loopBBox ={
-                height : this.textBBox.height + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH,
+                height : this.textBBox.height + 3 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH,
                 width: this.textBBox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH
             }
             this.update();
@@ -827,14 +831,17 @@ class DoWhileLoop extends Code {
             `${this.leftSpace + widthDoBox / 4},${heightDoBox / 2}`
         ].join(" ");
     }
+    protected get innerHeight() {
+        return this.doBBox.height + this.container.height + this.loopBBox.height + 2 * CONFIG.LINE_WIDTH;
+    }
 
     get width(): number {
         return this.leftSpace + this.rightSpace;
     }
     get leftSpace():number {
         return Math.max(0,
-                (this.doTextBBox.width + 4 * CONFIG.TEXT_MARGIN) / 2,
-                (this.textBBox.width + 2 * CONFIG.TEXT_MARGIN) / 2,
+                (this.doTextBBox.width + 4 * CONFIG.TEXT_MARGIN) / 2 + CONFIG.LINE_WIDTH,
+                (this.textBBox.width + 2 * CONFIG.TEXT_MARGIN) / 2 + CONFIG.LINE_WIDTH,
                 this.container.leftSpace
             );
     }
@@ -891,6 +898,7 @@ class IfStatementCode extends Code {
         this._trueContent.line_colour = "green";
         this.ifBox.appendChild(this.ifBoxShape);
         this.ifBox.appendChild(this.textBox);
+        this.ifBox.classList.add("IfBox");
         this._innerElement.appendChild(this.ifBox);
         this._innerElement.appendChild(this.trueLabel);
         this._innerElement.appendChild(this.falseLabel);
@@ -912,8 +920,8 @@ class IfStatementCode extends Code {
         this.ifBoxShape.setAttribute("stroke", this.parent.line_colour);
         this.ifBoxShape.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
         this.ifBox.ondblclick = this.ifBox.oncontextmenu = this.menuFunction.bind(this);
-        this._innerElement.ondblclick = this._innerElement.oncontextmenu = () => {
-        };
+        this.ifBox.onclick = (e:MouseEvent)=>new TextEditor(this,e, (newText:string) => {this.text = newText;});
+        this._innerElement.ondblclick = this._innerElement.oncontextmenu = () => {};
         this._falseLine1.setAttribute("stroke","red");
         this._falseLine2.setAttribute("stroke","red");
         this._trueLine1.setAttribute("stroke","green");
@@ -1091,7 +1099,6 @@ class StartNode {
     public readonly _element:SVGSVGElement = document.createElementNS(SVG_NS, "svg");
     private _textElement:SVGTextElement = document.createElementNS(SVG_NS, "text");
     private _ellipseElement:SVGEllipseElement  = document.createElementNS(SVG_NS, "ellipse");
-    public line:SVGLineElement = document.createElementNS(SVG_NS,"line");
 
     constructor(private parent: SVGSVGElement, private container:CodeContainer) {
 
@@ -1099,8 +1106,6 @@ class StartNode {
         this._element.setAttribute("class", "start-node");
         this._textElement.id = `textElement_${this.id}`;
 
-        this.line.id = `low_line_${this.id}`;
-        this.line.setAttribute("marker-start","url(#arrowStart")
         this._textElement.classList.add("textElement");
         this._textElement.classList.add("StartNode_text");
         this._textElement.textContent = "Start";
@@ -1114,12 +1119,10 @@ class StartNode {
 
         this._element.appendChild(this._ellipseElement);
         this._element.appendChild(this._textElement);
-        this._element.appendChild(this.line);
 
         parent.appendChild(this._element);
         this._element.appendChild(this._ellipseElement);
         this._element.appendChild(this._textElement);
-        this._element.appendChild(this.line);
         this.parent.appendChild(this._element);
         requestAnimationFrame(this.update.bind(this));
 
@@ -1130,7 +1133,7 @@ class StartNode {
     }
 
     get height(): number {
-        return this._textElement.getBBox().height + CONFIG.TEXT_MARGIN;
+        return this._textElement.getBBox().height + 2 * CONFIG.TEXT_MARGIN;
     }
 
     update() {
@@ -1138,12 +1141,6 @@ class StartNode {
         const height = this._textElement.getBBox().height + 2 * CONFIG.TEXT_MARGIN;
         this._element.setAttribute("width", `${width}`);
         this._element.setAttribute("height", `${height + CONFIG.SHAPE_MARGIN}`);
-        this.line.setAttribute("x1", `${width / 2}`);
-        this.line.setAttribute("x2", `${width / 2}`);
-        this.line.setAttribute("y1", `${height}`);
-        this.line.setAttribute("y2", `${height + CONFIG.SHAPE_MARGIN}`);
-        this.line.setAttribute("stroke", `${CONFIG.LINE_COLOUR}`);
-        this.line.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
         this._ellipseElement.setAttribute("cx", `${width / 2}`);
         this._ellipseElement.setAttribute("cy", `${height / 2}`);
         this._ellipseElement.setAttribute("rx", `${width / 2}`);
@@ -1158,14 +1155,14 @@ class StartNode {
     }
     menuFunction(e: MouseEvent): void {
         e.preventDefault();
-        const parent:CodeContainer = this.container;
+        // const parent:CodeContainer = this.container;
         const map:Map<string,()=>void> = this.getContextMenuMap(e)
         CustomMenu.show(e.pageX, e.pageY, map);
     };
     getContextMenuMap(e:MouseEvent):Map<string,() => void> {
         const parent:CodeContainer = this.container;
         return new Map<string, () => void>()
-            .set("Add", (() => {
+            .set("Add after", (() => {
                 openAddMenu(c(e.pageX,e.pageY),this.container, 0)
             }));
     }
@@ -1180,17 +1177,12 @@ class EndNode {
     public readonly _element:SVGSVGElement = document.createElementNS(SVG_NS, "svg");
     private _textElement:SVGTextElement = document.createElementNS(SVG_NS, "text");
     private _ellipseElement:SVGEllipseElement  = document.createElementNS(SVG_NS, "ellipse");
-    public line:SVGLineElement = document.createElementNS(SVG_NS,"line");
 
     constructor(private parent: SVGSVGElement) {
 
         this._element.setAttribute("id", `endNode_${ids.get()}`);
         this._element.setAttribute("class", "end-node");
         this._textElement.id = `textElement_${this.id}`;
-
-        this.line.id = `low_line_${this.id}`;
-
-        this.line.setAttribute("marker-end","url(#arrowEnd)");
 
         this._textElement.classList.add("textElement");
         this._textElement.classList.add("EndNode_text");
@@ -1205,12 +1197,10 @@ class EndNode {
 
         this._element.appendChild(this._ellipseElement);
         this._element.appendChild(this._textElement);
-        this._element.appendChild(this.line);
 
         parent.appendChild(this._element);
         this._element.appendChild(this._ellipseElement);
         this._element.appendChild(this._textElement);
-        this._element.appendChild(this.line);
         this.parent.appendChild(this._element);
         requestAnimationFrame(this.update.bind(this));
 
@@ -1228,17 +1218,11 @@ class EndNode {
         const width = this._textElement.getBBox().width + 2 * CONFIG.TEXT_MARGIN;
         const height = this._textElement.getBBox().height + 2 * CONFIG.TEXT_MARGIN;
         this._element.setAttribute("width", `${width}`);
-        this._element.setAttribute("height", `${height + CONFIG.SHAPE_MARGIN}`);
-        this.line.setAttribute("x1", `${width / 2}`);
-        this.line.setAttribute("x2", `${width / 2}`);
-        this.line.setAttribute("y1", `${0}`);
-        this.line.setAttribute("y2", `${CONFIG.SHAPE_MARGIN}`);
-        this.line.setAttribute("stroke", `${CONFIG.LINE_COLOUR}`);
-        this.line.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
+        this._element.setAttribute("height", `${height}`)
         this._textElement.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
-        this._textElement.setAttribute("y", `${CONFIG.TEXT_MARGIN + CONFIG.SHAPE_MARGIN}`);
+        this._textElement.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
         this._ellipseElement.setAttribute("cx", `${width / 2}`);
-        this._ellipseElement.setAttribute("cy", `${height / 2 + CONFIG.SHAPE_MARGIN}`);
+        this._ellipseElement.setAttribute("cy", `${height / 2}`);
         this._ellipseElement.setAttribute("rx", `${width / 2}`);
         this._ellipseElement.setAttribute("ry", `${height / 2}`);
     }
@@ -1255,7 +1239,7 @@ class Main {
     public readonly container: CodeContainer ;
     public readonly startNode: StartNode;
     public readonly endNode: EndNode;
-    constructor(bodyElement: HTMLElement) {
+    constructor(bodyElement: HTMLElement, private useUrl = true) {
         bodyElement.appendChild(this.SVG); // Attach to DOM for rendering
         this.SVG.setAttribute("id", `mainCode_${this.id}`);
         this.SVG.innerHTML += `<defs>
@@ -1291,7 +1275,9 @@ class Main {
         this.endNode.updateTopMid(c(middle, this.startNode._element.getBBox().height + this.container.height));
         this.SVG.setAttribute("width", `${width}`);
         this.SVG.setAttribute("height", `${this.container.height + this.startNode._element.getBBox().height + this.endNode._element.getBBox().height}`);
-        updateURLParams({init:JSON.stringify(this.export)});
+        if (this.useUrl) {
+            updateURLParams({init:JSON.stringify(this.export)});
+        }
 
     }
     get programTitle():string {
@@ -1309,6 +1295,14 @@ class Main {
 
 let main: Main;
 
+ const recursiveContentAdder = (content: Export[], i:number, container:CodeContainer) => {
+        if (i < content.length) {
+            Creator.exportToCode(content[i],container,i);
+            requestAnimationFrame(()=>{
+                recursiveContentAdder(content, i+1, container);
+            });
+        }
+    }
 function init() {
     main = new Main(document.querySelector("#flowchartcontainer") || document.body);
     const recursiveContentAdder = (content: Export[], i:number, container:CodeContainer) => {
@@ -1322,12 +1316,14 @@ function init() {
     try {
         const url = new URLSearchParams(window.location.search);
         if (url.has("init")) {
-            const content = JSON.parse(url.get("init") || "{}");
+            const content = JSON.parse(url.get("init") || "");
             if (content.type == "Program") {
                 recursiveContentAdder(content.content,0,main.container);
             } else throw Error();
-        } else
+        } else{
+            new Tutorial();
             throw Error();
+        }
 
     } catch {
     }

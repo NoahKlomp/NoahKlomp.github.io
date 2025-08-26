@@ -1,10 +1,16 @@
 abstract class Editor extends PopUp {}
 
 class TextEditor extends Editor {
+    
+    private static current:TextEditor | null;
     textInput:HTMLTextAreaElement = document.createElement("textarea");
     submitButton:HTMLButtonElement = document.createElement("button");
     constructor(current: Code,e:MouseEvent, doAfter: (newText: string) => void) {
         super();
+        if (TextEditor.current) {
+            TextEditor.current.close();
+        }
+        TextEditor.current = this;
         if (current instanceof StatementCode) {
             this.setBG(CONFIG.STATEMENT_COLOUR);
         } else if (current instanceof IfStatementCode) {
@@ -25,10 +31,13 @@ class TextEditor extends Editor {
             doAfter(this.textInput.value);
             this.close();
         }
+        
         this.setSize("fit-content","fit-content");
         this.setPosition(e.pageX, e.pageY);
         this.open();
-
+        // this.textInput.focus();
+        // // Select the text field
+        this.textInput.select();
 
     }
 

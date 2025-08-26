@@ -13,6 +13,7 @@ class CustomMenu {
         CustomMenu.menu.style.maxHeight = '200px';
         CustomMenu.menu.style.margin = 'auto';
         CustomMenu.menu.style.width = '100%';
+        CustomMenu.container.style.zIndex = "1020";
         document.body.appendChild(CustomMenu.container);
     }
     static show(x, y, items) {

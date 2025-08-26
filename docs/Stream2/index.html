@@ -45,8 +45,11 @@
         .hljs-comment {
             color: #A3D9FF;
         }
+        svg {
 
-        svg.statement, svg.DoWhileLoopBox, svg.loopbox {
+        }
+
+        svg.statement, svg.DoWhileLoopBox, svg.loopbox, svg.IfBox {
             font-family: monospace;
         }
     </style>
@@ -81,7 +84,8 @@
     <div id="actingButtons" class="funButtons">
         <button onclick="new CopyCodePopUp('python',main.export);hljs.highlightAll();">To Python Comments</button>
         <button onclick="new CopyCodePopUp('java',main.export);hljs.highlightAll();">To Java Comments</button>
-        <button>Share</button>
+        <button onclick="navigator.clipboard.writeText(window.location.href);">Copy URL</button>
+        <button onclick="window.location.href = window.location.origin+window.location.pathname;">Reset</button>
     </div>
 </body>
 </html>

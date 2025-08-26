@@ -6,6 +6,10 @@ class TextEditor extends Editor {
         super();
         this.textInput = document.createElement("textarea");
         this.submitButton = document.createElement("button");
+        if (TextEditor.current) {
+            TextEditor.current.close();
+        }
+        TextEditor.current = this;
         if (current instanceof StatementCode) {
             this.setBG(CONFIG.STATEMENT_COLOUR);
         }
@@ -33,5 +37,8 @@ class TextEditor extends Editor {
         this.setSize("fit-content", "fit-content");
         this.setPosition(e.pageX, e.pageY);
         this.open();
+        // this.textInput.focus();
+        // // Select the text field
+        this.textInput.select();
     }
 }

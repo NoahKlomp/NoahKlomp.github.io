@@ -1,12 +1,9 @@
 abstract class PopUp {
     private readonly element: HTMLDivElement = document.createElement('div');
-    protected static current: PopUp | null = null;
+    // protected static current: PopUp | null = null;
     private closeButton: HTMLAnchorElement = document.createElement('a');
-    protected constructor() {
-        if (PopUp.current) {
-            PopUp.current.close();
-        }
-        PopUp.current = this;
+    protected constructor(closeOthers:boolean = true) {
+        
         this.element.className = 'pop-up';
         this.element.style.position = 'fixed';
         this.element.style.left = "50px";
@@ -16,6 +13,7 @@ abstract class PopUp {
         this.element.style.border = '1px solid #ccc';
         this.element.style.borderRadius = '5px';
         this.element.style.padding = '10px';
+        this.element.style.overflow = 'auto';
         this.element.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.1)';
         this.element.style.display = 'none'; // Initially hidden
         document.body.appendChild(this.element);
@@ -24,9 +22,10 @@ abstract class PopUp {
         this.closeButton.className = 'close-button';
         this.closeButton.style.display = 'block';
         this.closeButton.style.background = "red";
-        this.closeButton.style.position = "absolute";
-        this.closeButton.style.right = "5px";
-        this.closeButton.style.top = "5px";
+        this.closeButton.style.position = "fixed";
+        this.closeButton.style.right = "60px";
+        this.closeButton.style.top = "60px";
+        this.closeButton.style.borderRadius = "5px";
         this.closeButton.style.padding = `${CONFIG.LINE_WIDTH}px`;
 
         this.closeButton.onclick = this.close.bind(this);
@@ -51,7 +50,6 @@ abstract class PopUp {
         if (this.element.parentNode) {
             this.element.parentNode.removeChild(this.element);
         }
-        PopUp.current = null;
     }
     public setPosition(x: number | string, y: number | string): void {
         this.element.style.left = Number.isFinite(x)? `${x}px` : x.toString();
@@ -76,32 +74,97 @@ abstract class PopUp {
 type CodeLanguage = "python" | "java";
 
 class CopyCodePopUp extends PopUp {
+    private static current:CopyCodePopUp | null;
     private preElement:HTMLPreElement = document.createElement("pre");
     private codeElement = document.createElement("CODE");
     private contentElement:HTMLTextAreaElement = document.createElement("textarea");
     private copyButton:HTMLButtonElement = document.createElement("button");
     constructor(lan:CodeLanguage, code:ProgramExport) {
         super();
+        if (CopyCodePopUp.current) {
+            CopyCodePopUp.current.close();
+        }
+        CopyCodePopUp.current = this;
         this.codeElement.classList.add("language-"+lan);
         this.preElement.appendChild(this.codeElement);
         this.contentElement.style.display = "none";
         this.copyButton.innerHTML = "Copy Code";
+        const codeString = lan === "python"? new PythonCodeMaker(code).toCode(): lan === "java"? new JavaCodeMaker(code).toCode(): "";
         this.copyButton.onclick = () => {
             var copyText = this.contentElement;
 
             // Select the text field
             copyText.select();
-            copyText.setSelectionRange(0, Infinity); // For mobile devices
+            // copyText.setSelectionRange(0, Infinity); // For mobile devices
 
             // Copy the text inside the text field
-            navigator.clipboard.writeText(copyText.value);
+            navigator.clipboard.writeText(codeString);
         }
         this.add(this.copyButton);
         this.add(this.preElement);
         this.add(this.contentElement);
-        const codeString = lan === "python"? new PythonCodeMaker(code).toCode(): lan === "java"? new JavaCodeMaker(code).toCode(): "";
         this.codeElement.innerHTML = this.contentElement.textContent = codeString;
         this.setFullScreen();
         this.open();
+    }
+    close() {
+        super.close();
+        CopyCodePopUp.current = null;
+    }
+}
+
+class Tutorial extends PopUp {
+
+    constructor() {
+        super();
+        let main = document.createElement("div");
+        this.add(main);
+        let content:HTMLElement[] = [];
+        content.push(document.createElement("h1"));
+        main.appendChild(content[0])
+        content[0].innerHTML = `
+            Quick tutorial
+        `;
+        content.push(document.createElement("ol"));
+        main.appendChild(content[1])
+        // Steps:
+
+        // Step 1
+        let steps:HTMLElement[] = [document.createElement("li")];
+        content[1].appendChild(steps[0]);
+        steps[0].innerHTML = `<h2>Adding nodes</h2>
+                            <p>
+                                Click on the arrow between two nodes to add a new node in between. You can try below. 
+                            </p>`
+        let first = document.createElement("div");
+        steps[0].appendChild(first);
+        let main_first_step = new Main(first,false);
+
+        //step 2
+
+        steps.push(document.createElement("li"));
+        content[1].appendChild(steps[1]);
+        steps[1].innerHTML = `<h2>Changing nodes</h2>
+                            <p>
+                                Click on a node to edit the text inside.
+                            </p>`;
+        let second = document.createElement("div");
+        steps[1].appendChild(second);
+        let main_second_step = new Main(second,false);
+        recursiveContentAdder([{type:"StatementCode", content:null, text:"Edit me!"}],0,main_second_step.container);
+
+        steps.push(document.createElement("li"));
+        content[1].appendChild(steps[2]);
+        steps[2].innerHTML = `<h2>Deleting nodes</h2>
+                            <p>
+                                Right-click on a node and left-click on remove, to remove the node from the flowchart.
+                            </p>`;
+        let third = document.createElement("div");
+        steps[2].appendChild(third);
+        let main_third_step = new Main(third,false);
+        recursiveContentAdder([{type:"StatementCode", content:null, text:"Delete me!"}],0,main_third_step.container);
+
+        this.open();
+        this.setFullScreen();
     }
 }
