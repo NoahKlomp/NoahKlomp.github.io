@@ -30,7 +30,7 @@ class PythonCodeMaker extends CodeMaker {
                             `${this.toCodeRecursive(falseCode, indent + 1)}`));
                 case CodeType.DO_WHILE:
                     const dowhilecode = val.content["Looped"] || [];
-                    return `${ind}while True:\n` +
+                    return `${ind}while True: # Find another way to implement the do-while-loop this problem \n` +
                         `${this.toCodeRecursive(dowhilecode, indent + 1)}\n` +
                         `${CodeMaker.indent(indent + 1)}if not (${val.text.replace("\n", " ")}):\n` +
                         `${CodeMaker.indent(indent + 2)}break`;

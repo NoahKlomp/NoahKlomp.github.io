@@ -1008,6 +1008,7 @@ class Main {
         this.id = ids.get();
         bodyElement.appendChild(this.SVG); // Attach to DOM for rendering
         this.SVG.setAttribute("id", `mainCode_${this.id}`);
+        // this.SVG.style.transform = "scale(0.2)";
         this.SVG.innerHTML += `<defs>
     <marker id="arrow" markerWidth="${CONFIG.LINE_WIDTH}" markerHeight="${CONFIG.LINE_WIDTH}" refX="${CONFIG.LINE_WIDTH / 2}" refY="${CONFIG.LINE_WIDTH / 2}" orient="auto">
       <path d="M 0 0 L ${CONFIG.LINE_WIDTH} ${CONFIG.LINE_WIDTH / 2} L 0 ${CONFIG.LINE_WIDTH} z" />
@@ -1038,7 +1039,7 @@ class Main {
         this.container.setTopMid(c(middle, this.startNode._element.getBBox().height));
         this.endNode.updateTopMid(c(middle, this.startNode._element.getBBox().height + this.container.height));
         this.SVG.setAttribute("width", `${width}`);
-        this.SVG.setAttribute("height", `${this.container.height + this.startNode._element.getBBox().height + this.endNode._element.getBBox().height}`);
+        this.SVG.setAttribute("height", `${(this.container.height + this.startNode._element.getBBox().height + this.endNode._element.getBBox().height)}`);
         if (this.useUrl) {
             updateURLParams({ init: JSON.stringify(this.export) });
         }

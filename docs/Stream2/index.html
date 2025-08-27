@@ -86,6 +86,52 @@
         <button onclick="new CopyCodePopUp('java',main.export);hljs.highlightAll();">To Java Comments</button>
         <button onclick="navigator.clipboard.writeText(window.location.href);">Copy URL</button>
         <button onclick="window.location.href = window.location.origin+window.location.pathname;">Reset</button>
+        <button id="toImgButton">Export to image</button>
+        <script type="module">
+            // Import Canvg from the Skypack CDN
+            import { Canvg } from 'https://cdn.skypack.dev/canvg';
+
+            // Set an initialization variable to null
+            let v = null;
+            let but = document.querySelector("#toImgButton");
+            
+
+            // Create a function that fires when the
+            // web browser loads the file
+            but.onclick = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                // Read the SVG string using the fromString method
+                // of Canvg
+                v = Canvg.fromString(ctx, document.querySelector("#flowchartcontainer").innerHTML);
+
+                // Start drawing the SVG on the canvas
+                v.start();
+
+                // Convert the Canvas to an image
+                var img = canvas.toDataURL("img/png");
+                downloadFile(img, "Flowchart.png");
+            }
+
+            function downloadFile(url, fileName = "unnamed")  {
+                // File content and filename
+                // const fileName = "example.txt";
+
+                // Create a Blob object with the file content
+
+                // Create a temporary link element
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = fileName;
+
+                // Programmatically click the link to trigger the download
+                link.click();
+
+                // Clean up the URL object
+                URL.revokeObjectURL(link.href);
+            }
+        </script>
     </div>
 </body>
 </html>

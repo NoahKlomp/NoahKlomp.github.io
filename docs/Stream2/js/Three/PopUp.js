@@ -2,20 +2,36 @@
 class PopUp {
     constructor(closeOthers = true) {
         this.element = document.createElement('div');
+        this.background_element = document.createElement('div');
         // protected static current: PopUp | null = null;
+        this.fullscreen = false;
         this.closeButton = document.createElement('a');
+        this.background_element.className = 'pop-up-bg';
+        this.background_element.style.position = 'fixed';
+        this.background_element.style.left = "0";
+        this.background_element.style.top = "0";
+        this.background_element.style.bottom = "0";
+        this.background_element.style.right = "0";
+        this.background_element.style.zIndex = '1000';
+        this.background_element.style.borderRadius = '0';
+        this.background_element.style.padding = '10px';
+        this.background_element.style.background = 'rgba(0, 0, 0, 0.45)';
+        this.background_element.style.display = 'none'; // Initially hidden
+        this.background_element.appendChild(this.element);
         this.element.className = 'pop-up';
         this.element.style.position = 'fixed';
         this.element.style.left = "50px";
         this.element.style.top = "50px";
-        this.element.style.zIndex = '1000';
-        this.element.style.backgroundColor = '#fff';
+        this.background_element.style.zIndex = '1001';
+        this.element.style.backgroundColor = '#cececeff';
         this.element.style.border = '1px solid #ccc';
         this.element.style.borderRadius = '5px';
         this.element.style.padding = '10px';
         this.element.style.overflow = 'auto';
-        this.element.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.1)';
+        this.element.style.zIndex = '1001';
+        this.element.style.boxShadow = '0 2px 10px rgba(255, 255, 255, 0.1)';
         this.element.style.display = 'none'; // Initially hidden
+        document.body.appendChild(this.background_element);
         document.body.appendChild(this.element);
         this.add(this.closeButton);
         this.closeButton.innerHTML = 'X';
@@ -40,17 +56,21 @@ class PopUp {
     }
     open() {
         this.element.style.display = 'block';
+        this.background_element.style.display = 'block';
         document.body.appendChild(this.element);
     }
     close() {
         this.element.style.display = 'none';
+        this.background_element.style.display = 'none';
         if (this.element.parentNode) {
             this.element.parentNode.removeChild(this.element);
+            this.element.parentNode.removeChild(this.background_element);
         }
     }
     setPosition(x, y) {
         this.element.style.left = Number.isFinite(x) ? `${x}px` : x.toString();
         this.element.style.top = Number.isFinite(y) ? `${y}px` : y.toString();
+        this.fullscreen = false;
     }
     setFullScreen() {
         this.element.style.left = '50px';
@@ -60,11 +80,13 @@ class PopUp {
         this.element.style.margin = '0';
         this.element.style.padding = '20px';
         this.element.style.boxSizing = 'border-box'; // Ensure padding is included in width/height
+        this.fullscreen = true;
     }
     setSize(width, height) {
         this.element.style.width = width;
         this.element.style.height = height;
         this.element.style.boxSizing = 'border-box'; // Ensure padding is included in width/height
+        this.fullscreen = false;
     }
 }
 class CopyCodePopUp extends PopUp {
