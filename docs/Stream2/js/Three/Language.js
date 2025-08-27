@@ -32,52 +32,54 @@ class Translator {
     }
 }
 Translator.fullMap = new Map()
-    .set("nl", new Map()
-    .set("Main Program", "Hoofdprogramma")
-    .set("true", "waar")
-    .set("false", "onwaar")
-    .set("Submit", "Pas toe")
-    .set("Quick tutorial", "Korte handleiding")
-    .set("Adding nodes", "Blokken toevoegen")
-    .set("addingNodesGuide", "Klik op de pijl tussen de begin en eind cirkel om een nieuw blok toe te voegen. Probeer hieronder.")
-    .set("Changing nodes", "Blokken aanpassen")
-    .set("changingNodesGuide", "Klik op een blok om de tekst erop aan te passen.")
-    .set("Edit me!", "Pas me aan!")
-    .set("Deleting nodes", "Blokken aanpassen")
-    .set("Delete me!", "Verwijder me!")
-    .set("deletingNodesGuide", "Klik met rechter muisknop op een blok om deze aan te passen.")
-    .set("Select", "Selecteer")
-    .set("STATEMENT", "Opdracht")
-    .set("WHILE", "Zolang lus")
-    .set("FOR", "Voor-elke lus")
-    .set("DO_WHILE", "Doe-zolang lus")
-    .set("IF", "Als keuze")
-    .set("Add", "Voeg")
-    .set("add2", " toe")
-    .set("Remove", "Verwijderen")
-    .set("Add After", "Hierna toevoegen")
-    .set("Edit Text", "Tekst aanpassen")
-    .set("Copy Code", "Kopieer code")
-    .set("Copy URL", "Kopieer URL")
-    .set("Unknown code", "Onbekende code")
-    .set("To Python Comments", "Naar Python commentaar")
-    .set("To Java Comments", "Naar Java commentaar")
-    .set("Reset", "Reset")
-    .set("End", "Einde")
-    .set("Start", "Start")
-    .set("Export to image", "Als afbeelding opslaan"))
-    .set("en", new Map()
-    .set("Main Program", "Main Program")
-    .set("addingNodesGuide", "Click on the arrow between two nodes to add a new node in between. You can try below.")
-    .set("changingNodesGuide", "Click on a node to edit the text inside it.")
-    .set("deletingNodesGuide", "Right-click on a node and left-click on remove, to remove the node from the flowchart.")
-    .set("STATEMENT", "Statement")
-    .set("WHILE", "While loop")
-    .set("FOR", "For-each loop")
-    .set("DO_WHILE", "Do-While loop")
-    .set("IF", "If choice")
-    .set("Add", "Add")
-    .set("add2", " "));
+    .set("nl", new Map([
+    ["Main Program", "Hoofdprogramma"],
+    ["true", "waar"],
+    ["false", "onwaar"],
+    ["Submit", "Pas toe"],
+    ["Quick tutorial", "Korte handleiding"],
+    ["Adding nodes", "Blokken toevoegen"],
+    ["addingNodesGuide", "Klik op de pijl tussen de begin en eind cirkel om een nieuw blok toe te voegen. Probeer hieronder."],
+    ["Changing nodes", "Blokken aanpassen"],
+    ["changingNodesGuide", "Klik op een blok om de tekst erop aan te passen."],
+    ["Edit me!", "Pas me aan!"],
+    ["Deleting nodes", "Blokken aanpassen"],
+    ["Delete me!", "Verwijder me!"],
+    ["deletingNodesGuide", "Klik met rechter muisknop op een blok om deze aan te passen."],
+    ["Select", "Selecteer"],
+    ["STATEMENT", "Opdracht"],
+    ["WHILE", "Zolang lus"],
+    ["FOR", "Voor-elke lus"],
+    ["DO_WHILE", "Doe-zolang lus"],
+    ["IF", "Als keuze"],
+    ["Add", "Voeg"],
+    ["add2", " toe"],
+    ["Remove", "Verwijderen"],
+    ["Add After", "Hierna toevoegen"],
+    ["Edit Text", "Tekst aanpassen"],
+    ["Copy Code", "Kopieer code"],
+    ["Copy URL", "Kopieer URL"],
+    ["Unknown code", "Onbekende code"],
+    ["To Python Comments", "Naar Python commentaar"],
+    ["To Java Comments", "Naar Java commentaar"],
+    ["Reset", "Reset"],
+    ["End", "Einde"],
+    ["Start", "Start"],
+    ["Export to image", "Als afbeelding opslaan"]
+]))
+    .set("en", new Map([
+    ["Main Program", "Main Program"],
+    ["addingNodesGuide", "Click on the arrow between two nodes to add a new node in between. You can try below."],
+    ["changingNodesGuide", "Click on a node to edit the text inside it."],
+    ["deletingNodesGuide", "Right-click on a node and left-click on remove, to remove the node from the flowchart."],
+    ["STATEMENT", "Statement"],
+    ["WHILE", "While loop"],
+    ["FOR", "For-each loop"],
+    ["DO_WHILE", "Do-While loop"],
+    ["IF", "If choice"],
+    ["Add", "Add"],
+    ["add2", " "]
+]));
 class Words extends Translator {
 }
 (document.getElementById('CopyUrlButton') || document.createElement("button")).innerHTML = Words.get('Copy URL');
