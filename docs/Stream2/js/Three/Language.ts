@@ -9,12 +9,12 @@ function updateURLParams(params: Record<string, string>): void {
     const newURL = `${window.location.pathname}?${searchParams.toString()}`;
     history.replaceState(params, '', newURL); // Update URL without reloading
 }
-
-let current_lan = new URLSearchParams(window.location.search);
+(()=>{
+const current_lan = new URLSearchParams(window.location.search);
 updateURLParams({
     lan: current_lan.get("lan") || window.navigator.language.split("-")[0]
 });
-
+})()
 class Translator {
     private static fullMap:Map<string,Map<string,string>> = new Map<string,Map<string,string>>()
         .set("nl",new Map<string,string>()
@@ -63,7 +63,7 @@ class Translator {
             .set("DO_WHILE", "Do-While loop")
             .set("IF", "If choice")
             .set("Add", "Add")
-            .set("add2", "")
+            .set("add2", " ")
         );
     private static get urlpars() {
         return new URLSearchParams(location.search);

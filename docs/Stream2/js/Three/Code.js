@@ -77,7 +77,7 @@ class ConnectingLine {
     }
     menuFunction(e) {
         e.preventDefault();
-        openAddMenu(c(e.pageX, e.pageY), this.parent, this.index);
+        openAddMenu(c(e.clientX, e.clientY), this.parent, this.index);
     }
 }
 function openAddMenu(cors, parent, indexToAdd) {
@@ -203,7 +203,7 @@ class Code {
         e.preventDefault();
         const parent = this.parent;
         const map = this.getContextMenuMap(e);
-        CustomMenu.show(e.pageX, e.pageY, map);
+        CustomMenu.show(e.clientX, e.clientY, map);
     }
     ;
     getContextMenuMap(e) {
@@ -213,7 +213,7 @@ class Code {
             parent.remove(this.index);
         }));
         map.set(Words.get("Add After"), (() => {
-            openAddMenu(c(e.pageX, e.pageY), this.parent, this.index + 1);
+            openAddMenu(c(e.clientX, e.clientY), this.parent, this.index + 1);
         }));
         map.set(Words.get("Edit Text"), (() => {
             new TextEditor(this, e, (newText) => {
@@ -352,6 +352,7 @@ class GeneralLoopCode extends Code {
         this._innerElement.ondblclick = this._innerElement.oncontextmenu = (e) => { };
         this.trueLabel.textContent = Words.get("true");
         this.falseLabel.textContent = Words.get("false");
+        [this.trueLabel, this.falseLabel].forEach((l) => l.setAttribute("font-size", "xx-small"));
         this.trueLabel.setAttribute("text-anchor", "start");
         this.trueLabel.setAttribute("dominant-baseline", "hanging");
         this.falseLabel.setAttribute("dominant-baseline", "ideographic");
@@ -482,7 +483,7 @@ class GeneralLoopCode extends Code {
     getContextMenuMap(e) {
         return super.getContextMenuMap(e)
             .set("Add to start of loop", () => {
-            openAddMenu(c(e.pageX, e.pageY), this.container, 0);
+            openAddMenu(c(e.clientX, e.clientY), this.container, 0);
         }).set("Clear", () => {
             this.container.clear();
         });
@@ -677,7 +678,7 @@ class DoWhileLoop extends Code {
     getContextMenuMap(e) {
         return super.getContextMenuMap(e)
             .set("Add to start of loop", () => {
-            openAddMenu(c(e.pageX, e.pageY), this.container, 0);
+            openAddMenu(c(e.clientX, e.clientY), this.container, 0);
         }).set("Clear", () => {
             this.container.clear();
         });
@@ -854,13 +855,13 @@ class IfStatementCode extends Code {
     getContextMenuMap(e) {
         return super.getContextMenuMap(e)
             .set("Add to start of true block", () => {
-            openAddMenu(c(e.pageX, e.pageY), this._trueContent, 0);
+            openAddMenu(c(e.clientX, e.clientY), this._trueContent, 0);
         })
             .set("Clear true block", () => {
             this._trueContent.clear();
         })
             .set("Add to start of false block", () => {
-            openAddMenu(c(e.pageX, e.pageY), this._falseContent, 0);
+            openAddMenu(c(e.clientX, e.clientY), this._falseContent, 0);
         }).set("Clear false block", () => {
             this._falseContent.clear();
         });
@@ -924,14 +925,14 @@ class StartNode {
         e.preventDefault();
         // const parent:CodeContainer = this.container;
         const map = this.getContextMenuMap(e);
-        CustomMenu.show(e.pageX, e.pageY, map);
+        CustomMenu.show(e.clientX, e.clientY, map);
     }
     ;
     getContextMenuMap(e) {
         const parent = this.container;
         return new Map()
             .set("Add after", (() => {
-            openAddMenu(c(e.pageX, e.pageY), this.container, 0);
+            openAddMenu(c(e.clientX, e.clientY), this.container, 0);
         }));
     }
 }

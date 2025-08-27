@@ -9,10 +9,12 @@ function updateURLParams(params) {
     const newURL = `${window.location.pathname}?${searchParams.toString()}`;
     history.replaceState(params, '', newURL); // Update URL without reloading
 }
-let current_lan = new URLSearchParams(window.location.search);
-updateURLParams({
-    lan: current_lan.get("lan") || window.navigator.language.split("-")[0]
-});
+(() => {
+    const current_lan = new URLSearchParams(window.location.search);
+    updateURLParams({
+        lan: current_lan.get("lan") || window.navigator.language.split("-")[0]
+    });
+})();
 class Translator {
     static get urlpars() {
         return new URLSearchParams(location.search);
@@ -75,7 +77,7 @@ Translator.fullMap = new Map()
     .set("DO_WHILE", "Do-While loop")
     .set("IF", "If choice")
     .set("Add", "Add")
-    .set("add2", ""));
+    .set("add2", " "));
 class Words extends Translator {
 }
 (document.getElementById('CopyUrlButton') || document.createElement("button")).innerHTML = Words.get('Copy URL');

@@ -35,7 +35,7 @@ class TextEditor extends Editor {
             this.close();
         };
         this.setSize("fit-content", "fit-content");
-        this.setPosition(e.pageX, e.pageY);
+        this.setPosition(e.clientX, e.clientY);
         this.open();
         // this.textInput.focus();
         // // Select the text field
