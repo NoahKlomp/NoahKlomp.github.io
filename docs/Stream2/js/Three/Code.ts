@@ -70,21 +70,6 @@ type ContentType = "Looped"|
     "FunctionDefinition"|
     "MainCode";
 
-function emptyContent(): Content {
-    return {
-        "Looped": undefined,
-        "True": undefined,
-        "False": undefined,
-        "Try": undefined,
-        "Catch": undefined,
-        "Finally": undefined,
-        "Else": undefined,
-        "ElseIf": undefined,
-        "FunctionCall": undefined,
-        "FunctionDefinition": undefined,
-        "MainCode": undefined
-    };
-}
 
 enum CodeType {
     STATEMENT = "StatementCode",
@@ -156,7 +141,7 @@ function openAddMenu(cors:Coordinates, parent:CodeContainer, indexToAdd:number) 
         const map = new Map<string, () => void>();
         for (let t in CodeType) {
             if (!["FUNCTION", "MAIN"].includes(t)){
-                map.set("Add "+t, (() => {
+                map.set(Words.get("Add")+" "+Words.get(t)+Words.get("add2"), (() => {
                     Creator.exportToCode(Creator.getExport(t), parent, indexToAdd);
                 }));
             }
@@ -296,13 +281,13 @@ abstract class Code implements Updatable {
     getContextMenuMap(e:MouseEvent):Map<string,() => void> {
         const parent:CodeContainer = this.parent;
         const map = new Map<string, () => void>();
-        map.set("Remove", (() => {
+        map.set(Words.get("Remove"), (() => {
             parent.remove(this.index);
         }));
-        map.set("Add After", (() => {
+        map.set(Words.get("Add After"), (() => {
             openAddMenu(c(e.pageX,e.pageY),this.parent, this.index + 1);
         }));
-        map.set("Edit Text", (() => {
+        map.set(Words.get("Edit Text"), (() => {
             new TextEditor(this,e, (newText:string) => {
                 this.text = newText;
             });
@@ -467,8 +452,8 @@ abstract class GeneralLoopCode extends Code {
         this.loopBox.onclick = (e:MouseEvent)=>new TextEditor(this,e, (newText:string) => {this.text = newText;});
         this._innerElement.ondblclick = this._innerElement.oncontextmenu = (e: MouseEvent) => {};
 
-        this.trueLabel.textContent = "true";
-        this.falseLabel.textContent = "false";
+        this.trueLabel.textContent = Words.get("true");
+        this.falseLabel.textContent = Words.get("false");
 
         this.trueLabel.setAttribute("text-anchor", "start");
         this.trueLabel.setAttribute("dominant-baseline", "hanging");
@@ -598,7 +583,7 @@ abstract class GeneralLoopCode extends Code {
     get export(): Export {
         return {
             type: this.type,
-            content: {...emptyContent(),"Looped": this.container.export},
+            content: {"Looped": this.container.export},
             text: this.loopText.textContent || ""
         };
     }
@@ -721,9 +706,9 @@ class DoWhileLoop extends Code {
         
         this.trueLabel.setAttribute("text-anchor", "start");
         this.trueLabel.setAttribute("dominant-baseline","hanging");
-        this.trueLabel.textContent = "true";
+        this.trueLabel.textContent = Words.get("true");
         this.falseLabel.setAttribute("text-anchor", "end");
-        this.falseLabel.textContent = "false";
+        this.falseLabel.textContent = Words.get("false");
         this.falseLabel.setAttribute("dominant-baseline","ideographic");
         
         this._innerElement.appendChild(this.trueLabel);
@@ -905,9 +890,9 @@ class IfStatementCode extends Code {
         
         this.trueLabel.setAttribute("text-anchor", "start");
         this.trueLabel.setAttribute("dominant-baseline","ideographic");
-        this.trueLabel.textContent = "true";
+        this.trueLabel.textContent = Words.get("true");
         this.falseLabel.setAttribute("text-anchor", "end");
-        this.falseLabel.textContent = "false";
+        this.falseLabel.textContent = Words.get("false");
         this.falseLabel.setAttribute("dominant-baseline","ideographic");
 
         this.textBox.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
@@ -1041,7 +1026,7 @@ class IfStatementCode extends Code {
 
         return {
             type: CodeType.IF,
-            content: {...emptyContent(),
+            content: {
                 "False": this._falseContent.export,
                 "True": this._trueContent.export
             },
@@ -1108,7 +1093,7 @@ class StartNode {
 
         this._textElement.classList.add("textElement");
         this._textElement.classList.add("StartNode_text");
-        this._textElement.textContent = "Start";
+        this._textElement.textContent = Words.get("Start");
         this._textElement.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
         this._textElement.setAttribute("y", `${CONFIG.TEXT_MARGIN }`);
         this._textElement.setAttribute("text-anchor", "start");
@@ -1186,7 +1171,7 @@ class EndNode {
 
         this._textElement.classList.add("textElement");
         this._textElement.classList.add("EndNode_text");
-        this._textElement.textContent = "End";
+        this._textElement.textContent = Words.get("End");
         this._textElement.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
         this._textElement.setAttribute("y", `${CONFIG.TEXT_MARGIN }`);
         this._textElement.setAttribute("text-anchor", "start");
@@ -1269,8 +1254,14 @@ class Main {
 
     update() {
         // this.container.update();
-        const middle = Math.max(this.startNode._element.getBBox().width / 2, this.container.leftSpace);
-        const width = Math.max(this.startNode._element.getBBox().width, this.container.width);
+        const middle = Math.max(
+            this.startNode._element.getBBox().width / 2,
+            this.endNode._element.getBBox().width / 2,
+            this.container.leftSpace);
+        const width = Math.max(
+            this.startNode._element.getBBox().width,
+            this.endNode._element.getBBox().width,
+            this.container.width);
         this.startNode.updateTopMid(c(middle, 0));
         this.container.setTopMid(c(middle, this.startNode._element.getBBox().height));
         this.endNode.updateTopMid(c(middle, this.startNode._element.getBBox().height + this.container.height));
@@ -1284,7 +1275,7 @@ class Main {
 
     }
     get programTitle():string {
-        return "Main Program";
+        return Words.get("Main Program");
     }
     get export():ProgramExport {
         return {
@@ -1335,13 +1326,6 @@ function init() {
 function exportAll():string {
     return JSON.stringify(main.export);
 }
-function updateURLParams(params: Record<string, string>): void {
-    const searchParams = new URLSearchParams();
-    for (const [key, value] of Object.entries(params)) {
-        if (value) searchParams.set(key, value); // Only set non-empty values
-    }
-    const newURL = `${window.location.pathname}?${searchParams.toString()}`;
-    history.replaceState(params, '', newURL); // Update URL without reloading
-}
+
 
 

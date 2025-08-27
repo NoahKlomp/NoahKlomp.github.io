@@ -21,11 +21,12 @@ class Creator extends PopUp {
         for (let t in CodeType) {
             if (!(t == "FUNCTION" || t == "MAIN")) {
                 let thing = document.createElement("option");
-                thing.textContent = t;
+                thing.textContent = Words.get(t);
+                thing.value = t;
                 this.types.appendChild(thing);
             }
         }
-        this.types.value = "select";
+        this.types.value = Words.get("Select");
         this.types.onchange = (e) => {
             e.preventDefault();
             try {
@@ -44,7 +45,7 @@ class Creator extends PopUp {
         switch (export1.type) {
             case CodeType.STATEMENT:
                 return new StatementCode(parent, index, export1.text);
-            case CodeType.WHILE:
+            case CodeType.WHILE.toString():
                 if (export1.content) {
                     if (export1.content["Looped"]) {
                         const element = new WhileLoopCode(parent, index, export1.text);
@@ -55,7 +56,7 @@ class Creator extends PopUp {
                     }
                 }
                 throw new InvalidExportError("Cannot obtain Looped content");
-            case CodeType.FOR:
+            case CodeType.FOR.toString():
                 if (export1.content) {
                     if (export1.content["Looped"]) {
                         const element = new ForLoopCode(parent, index, export1.text);
@@ -66,7 +67,7 @@ class Creator extends PopUp {
                     }
                 }
                 throw new InvalidExportError("Cannot obtain Looped content");
-            case CodeType.DO_WHILE:
+            case CodeType.DO_WHILE.toString():
                 if (export1.content) {
                     if (export1.content["Looped"]) {
                         const element = new DoWhileLoop(parent, index, export1.text);
@@ -77,7 +78,7 @@ class Creator extends PopUp {
                     }
                 }
                 throw new InvalidExportError("Cannot obtain Looped content");
-            case CodeType.IF:
+            case CodeType.IF.toString():
                 if (export1.content) {
                     if (export1.content["True"] && export1.content["False"]) {
                         const element = new IfStatementCode(parent, index, export1.text);

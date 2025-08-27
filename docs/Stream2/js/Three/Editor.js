@@ -29,7 +29,7 @@ class TextEditor extends Editor {
         this.textInput.innerText = current.text;
         this.add(this.textInput);
         this.add(this.submitButton);
-        this.submitButton.textContent = "Submit";
+        this.submitButton.textContent = Words.get("Submit");
         this.submitButton.onclick = (e) => {
             doAfter(this.textInput.value);
             this.close();

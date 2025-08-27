@@ -24,21 +24,6 @@ fetch("js/Three/config.json").then(e => e.json()).then(e => {
 }).then(() => {
     init();
 });
-function emptyContent() {
-    return {
-        "Looped": undefined,
-        "True": undefined,
-        "False": undefined,
-        "Try": undefined,
-        "Catch": undefined,
-        "Finally": undefined,
-        "Else": undefined,
-        "ElseIf": undefined,
-        "FunctionCall": undefined,
-        "FunctionDefinition": undefined,
-        "MainCode": undefined
-    };
-}
 var CodeType;
 (function (CodeType) {
     CodeType["STATEMENT"] = "StatementCode";
@@ -100,7 +85,7 @@ function openAddMenu(cors, parent, indexToAdd) {
         const map = new Map();
         for (let t in CodeType) {
             if (!["FUNCTION", "MAIN"].includes(t)) {
-                map.set("Add " + t, (() => {
+                map.set(Words.get("Add") + " " + Words.get(t) + Words.get("add2"), (() => {
                     Creator.exportToCode(Creator.getExport(t), parent, indexToAdd);
                 }));
             }
@@ -224,13 +209,13 @@ class Code {
     getContextMenuMap(e) {
         const parent = this.parent;
         const map = new Map();
-        map.set("Remove", (() => {
+        map.set(Words.get("Remove"), (() => {
             parent.remove(this.index);
         }));
-        map.set("Add After", (() => {
+        map.set(Words.get("Add After"), (() => {
             openAddMenu(c(e.pageX, e.pageY), this.parent, this.index + 1);
         }));
-        map.set("Edit Text", (() => {
+        map.set(Words.get("Edit Text"), (() => {
             new TextEditor(this, e, (newText) => {
                 this.text = newText;
             });
@@ -365,8 +350,8 @@ class GeneralLoopCode extends Code {
         this.loopBox.ondblclick = this.loopBox.oncontextmenu = this.menuFunction.bind(this);
         this.loopBox.onclick = (e) => new TextEditor(this, e, (newText) => { this.text = newText; });
         this._innerElement.ondblclick = this._innerElement.oncontextmenu = (e) => { };
-        this.trueLabel.textContent = "true";
-        this.falseLabel.textContent = "false";
+        this.trueLabel.textContent = Words.get("true");
+        this.falseLabel.textContent = Words.get("false");
         this.trueLabel.setAttribute("text-anchor", "start");
         this.trueLabel.setAttribute("dominant-baseline", "hanging");
         this.falseLabel.setAttribute("dominant-baseline", "ideographic");
@@ -472,7 +457,7 @@ class GeneralLoopCode extends Code {
     get export() {
         return {
             type: this.type,
-            content: Object.assign(Object.assign({}, emptyContent()), { "Looped": this.container.export }),
+            content: { "Looped": this.container.export },
             text: this.loopText.textContent || ""
         };
     }
@@ -573,9 +558,9 @@ class DoWhileLoop extends Code {
         this._innerElement.classList.add("DoWhileLoop");
         this.trueLabel.setAttribute("text-anchor", "start");
         this.trueLabel.setAttribute("dominant-baseline", "hanging");
-        this.trueLabel.textContent = "true";
+        this.trueLabel.textContent = Words.get("true");
         this.falseLabel.setAttribute("text-anchor", "end");
-        this.falseLabel.textContent = "false";
+        this.falseLabel.textContent = Words.get("false");
         this.falseLabel.setAttribute("dominant-baseline", "ideographic");
         this._innerElement.appendChild(this.trueLabel);
         this._innerElement.appendChild(this.falseLabel);
@@ -727,9 +712,9 @@ class IfStatementCode extends Code {
         this._innerElement.appendChild(this.falseLabel);
         this.trueLabel.setAttribute("text-anchor", "start");
         this.trueLabel.setAttribute("dominant-baseline", "ideographic");
-        this.trueLabel.textContent = "true";
+        this.trueLabel.textContent = Words.get("true");
         this.falseLabel.setAttribute("text-anchor", "end");
-        this.falseLabel.textContent = "false";
+        this.falseLabel.textContent = Words.get("false");
         this.falseLabel.setAttribute("dominant-baseline", "ideographic");
         this.textBox.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
         this.textBox.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
@@ -836,7 +821,10 @@ class IfStatementCode extends Code {
     get export() {
         return {
             type: CodeType.IF,
-            content: Object.assign(Object.assign({}, emptyContent()), { "False": this._falseContent.export, "True": this._trueContent.export }),
+            content: {
+                "False": this._falseContent.export,
+                "True": this._trueContent.export
+            },
             text: this.textBox.textContent ? this.textBox.textContent : ""
         };
     }
@@ -895,7 +883,7 @@ class StartNode {
         this._textElement.id = `textElement_${this.id}`;
         this._textElement.classList.add("textElement");
         this._textElement.classList.add("StartNode_text");
-        this._textElement.textContent = "Start";
+        this._textElement.textContent = Words.get("Start");
         this._textElement.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
         this._textElement.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
         this._textElement.setAttribute("text-anchor", "start");
@@ -963,7 +951,7 @@ class EndNode {
         this._textElement.id = `textElement_${this.id}`;
         this._textElement.classList.add("textElement");
         this._textElement.classList.add("EndNode_text");
-        this._textElement.textContent = "End";
+        this._textElement.textContent = Words.get("End");
         this._textElement.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
         this._textElement.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
         this._textElement.setAttribute("text-anchor", "start");
@@ -1033,8 +1021,8 @@ class Main {
     }
     update() {
         // this.container.update();
-        const middle = Math.max(this.startNode._element.getBBox().width / 2, this.container.leftSpace);
-        const width = Math.max(this.startNode._element.getBBox().width, this.container.width);
+        const middle = Math.max(this.startNode._element.getBBox().width / 2, this.endNode._element.getBBox().width / 2, this.container.leftSpace);
+        const width = Math.max(this.startNode._element.getBBox().width, this.endNode._element.getBBox().width, this.container.width);
         this.startNode.updateTopMid(c(middle, 0));
         this.container.setTopMid(c(middle, this.startNode._element.getBBox().height));
         this.endNode.updateTopMid(c(middle, this.startNode._element.getBBox().height + this.container.height));
@@ -1045,7 +1033,7 @@ class Main {
         }
     }
     get programTitle() {
-        return "Main Program";
+        return Words.get("Main Program");
     }
     get export() {
         return {
@@ -1095,13 +1083,4 @@ function init() {
 }
 function exportAll() {
     return JSON.stringify(main.export);
-}
-function updateURLParams(params) {
-    const searchParams = new URLSearchParams();
-    for (const [key, value] of Object.entries(params)) {
-        if (value)
-            searchParams.set(key, value); // Only set non-empty values
-    }
-    const newURL = `${window.location.pathname}?${searchParams.toString()}`;
-    history.replaceState(params, '', newURL); // Update URL without reloading
 }

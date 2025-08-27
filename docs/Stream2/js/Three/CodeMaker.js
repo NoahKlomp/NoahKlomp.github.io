@@ -30,7 +30,7 @@ class PythonCodeMaker extends CodeMaker {
                             `${this.toCodeRecursive(falseCode, indent + 1)}`));
                 case CodeType.DO_WHILE:
                     const dowhilecode = val.content["Looped"] || [];
-                    return `${ind}while True: # Find another way to implement the do-while-loop this problem \n` +
+                    return `${ind}while True:\n` +
                         `${this.toCodeRecursive(dowhilecode, indent + 1)}\n` +
                         `${CodeMaker.indent(indent + 1)}if not (${val.text.replace("\n", " ")}):\n` +
                         `${CodeMaker.indent(indent + 2)}break`;
@@ -43,7 +43,7 @@ class PythonCodeMaker extends CodeMaker {
                     return `${ind}while ${val.text.replace("\n", " ")}:\n` +
                         `${this.toCodeRecursive(whilecode, indent + 1)}`;
                 default:
-                    return "# Unknown code";
+                    return "# " + Words.get("Unknown code");
             }
         }).join("\n");
     }
@@ -82,7 +82,7 @@ class JavaCodeMaker extends CodeMaker {
                         `${this.toCodeRecursive(whilecode, indent + 1)}\n` +
                         `}`;
                 default:
-                    return "// Unknown code";
+                    return "// " + Words.get("Unknown code");
             }
         }).join("\n");
     }

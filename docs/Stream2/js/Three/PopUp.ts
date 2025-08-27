@@ -113,7 +113,7 @@ class CopyCodePopUp extends PopUp {
         this.codeElement.classList.add("language-"+lan);
         this.preElement.appendChild(this.codeElement);
         this.contentElement.style.display = "none";
-        this.copyButton.innerHTML = "Copy Code";
+        this.copyButton.innerHTML = Words.get("Copy Code");
         const codeString = lan === "python"? new PythonCodeMaker(code).toCode(): lan === "java"? new JavaCodeMaker(code).toCode(): "";
         this.copyButton.onclick = () => {
             var copyText = this.contentElement;
@@ -147,9 +147,7 @@ class Tutorial extends PopUp {
         let content:HTMLElement[] = [];
         content.push(document.createElement("h1"));
         main.appendChild(content[0])
-        content[0].innerHTML = `
-            Quick tutorial
-        `;
+        content[0].innerHTML = Words.get(`Quick tutorial`);
         content.push(document.createElement("ol"));
         main.appendChild(content[1])
         // Steps:
@@ -157,9 +155,9 @@ class Tutorial extends PopUp {
         // Step 1
         let steps:HTMLElement[] = [document.createElement("li")];
         content[1].appendChild(steps[0]);
-        steps[0].innerHTML = `<h2>Adding nodes</h2>
+        steps[0].innerHTML = `<h2>${Words.get("Adding nodes")}</h2>
                             <p>
-                                Click on the arrow between two nodes to add a new node in between. You can try below. 
+                                ${Words.get("addingNodesGuide")} 
                             </p>`
         let first = document.createElement("div");
         steps[0].appendChild(first);
@@ -169,25 +167,25 @@ class Tutorial extends PopUp {
 
         steps.push(document.createElement("li"));
         content[1].appendChild(steps[1]);
-        steps[1].innerHTML = `<h2>Changing nodes</h2>
+        steps[1].innerHTML = `<h2>${Words.get("Changing nodes")}</h2>
                             <p>
-                                Click on a node to edit the text inside.
+                                ${Words.get("changingNodesGuide")}
                             </p>`;
         let second = document.createElement("div");
         steps[1].appendChild(second);
         let main_second_step = new Main(second,false);
-        recursiveContentAdder([{type:"StatementCode", content:null, text:"Edit me!"}],0,main_second_step.container);
+        recursiveContentAdder([{type:"StatementCode", content:null, text:Words.get("Edit me!")}],0,main_second_step.container);
 
         steps.push(document.createElement("li"));
         content[1].appendChild(steps[2]);
-        steps[2].innerHTML = `<h2>Deleting nodes</h2>
+        steps[2].innerHTML = `<h2>${Words.get("Deleting nodes")}</h2>
                             <p>
-                                Right-click on a node and left-click on remove, to remove the node from the flowchart.
+                                ${Words.get("deletingNodesGuide")}
                             </p>`;
         let third = document.createElement("div");
         steps[2].appendChild(third);
         let main_third_step = new Main(third,false);
-        recursiveContentAdder([{type:"StatementCode", content:null, text:"Delete me!"}],0,main_third_step.container);
+        recursiveContentAdder([{type:"StatementCode", content:null, text:Words.get("Delete me!")}],0,main_third_step.container);
 
         this.open();
         this.setFullScreen();
