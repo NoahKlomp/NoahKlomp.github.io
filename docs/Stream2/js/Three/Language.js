@@ -82,8 +82,3 @@ Translator.fullMap = new Map()
 ]));
 class Words extends Translator {
 }
-(document.getElementById('CopyUrlButton') || document.createElement("button")).innerHTML = Words.get('Copy URL');
-(document.getElementById('PythonButton') || document.createElement("button")).innerHTML = Words.get('To Python Comments');
-(document.getElementById('JavaButton') || document.createElement("button")).innerHTML = Words.get('To Java Comments');
-(document.getElementById('ResetButton') || document.createElement("button")).innerHTML = Words.get('Reset');
-(document.getElementById('toImgButton') || document.createElement("button")).innerHTML = Words.get('Export to image');

@@ -3,7 +3,6 @@ class PopUp {
     constructor(closeOthers = true) {
         this.element = document.createElement('div');
         this.background_element = document.createElement('div');
-        // protected static current: PopUp | null = null;
         this.fullscreen = false;
         this.closeButton = document.createElement('a');
         this.background_element.className = 'pop-up-bg';
@@ -75,17 +74,17 @@ class PopUp {
     setFullScreen() {
         this.element.style.left = '50px';
         this.element.style.top = '50px';
-        this.element.style.width = 'calc(100% - 100px)'; // 50px padding on each side
-        this.element.style.height = 'calc(100% - 100px)'; // 50px padding on each side
+        this.element.style.width = 'calc(100% - 100px)';
+        this.element.style.height = 'calc(100% - 100px)';
         this.element.style.margin = '0';
         this.element.style.padding = '20px';
-        this.element.style.boxSizing = 'border-box'; // Ensure padding is included in width/height
+        this.element.style.boxSizing = 'border-box';
         this.fullscreen = true;
     }
     setSize(width, height) {
         this.element.style.width = width;
         this.element.style.height = height;
-        this.element.style.boxSizing = 'border-box'; // Ensure padding is included in width/height
+        this.element.style.boxSizing = 'border-box';
         this.fullscreen = false;
     }
 }
@@ -107,10 +106,7 @@ class CopyCodePopUp extends PopUp {
         const codeString = lan === "python" ? new PythonCodeMaker(code).toCode() : lan === "java" ? new JavaCodeMaker(code).toCode() : "";
         this.copyButton.onclick = () => {
             var copyText = this.contentElement;
-            // Select the text field
             copyText.select();
-            // copyText.setSelectionRange(0, Infinity); // For mobile devices
-            // Copy the text inside the text field
             navigator.clipboard.writeText(codeString);
         };
         this.add(this.copyButton);

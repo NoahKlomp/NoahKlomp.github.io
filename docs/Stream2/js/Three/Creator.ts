@@ -1,4 +1,5 @@
-class Creator extends PopUp {
+
+ class Creator extends PopUp {
     private form: HTMLFormElement = document.createElement('form');
     private types: HTMLSelectElement = document.createElement('select');
 

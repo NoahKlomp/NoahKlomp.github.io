@@ -1,3 +1,5 @@
+
+
 type codeString = string;
 
 abstract class CodeMaker {

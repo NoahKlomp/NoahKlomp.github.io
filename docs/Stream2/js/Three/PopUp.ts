@@ -1,7 +1,7 @@
+
 abstract class PopUp {
     private readonly element: HTMLDivElement = document.createElement('div');
     private readonly background_element: HTMLDivElement = document.createElement('div');
-    // protected static current: PopUp | null = null;
     private fullscreen = false;
     private closeButton: HTMLAnchorElement = document.createElement('a');
     protected constructor(closeOthers:boolean = true) {
@@ -81,17 +81,17 @@ abstract class PopUp {
     public setFullScreen(): void {
         this.element.style.left = '50px';
         this.element.style.top = '50px';
-        this.element.style.width = 'calc(100% - 100px)'; // 50px padding on each side
-        this.element.style.height = 'calc(100% - 100px)'; // 50px padding on each side
+        this.element.style.width = 'calc(100% - 100px)'; 
+        this.element.style.height = 'calc(100% - 100px)'; 
         this.element.style.margin = '0';
         this.element.style.padding = '20px';
-        this.element.style.boxSizing = 'border-box'; // Ensure padding is included in width/height
+        this.element.style.boxSizing = 'border-box'; 
         this.fullscreen=true
     }
     public setSize(width: string, height: string): void {
         this.element.style.width = width;
         this.element.style.height = height;
-        this.element.style.boxSizing = 'border-box'; // Ensure padding is included in width/height
+        this.element.style.boxSizing = 'border-box'; 
         this.fullscreen = false
     }
 }
@@ -118,11 +118,7 @@ class CopyCodePopUp extends PopUp {
         this.copyButton.onclick = () => {
             var copyText = this.contentElement;
 
-            // Select the text field
             copyText.select();
-            // copyText.setSelectionRange(0, Infinity); // For mobile devices
-
-            // Copy the text inside the text field
             navigator.clipboard.writeText(codeString);
         }
         this.add(this.copyButton);

@@ -1,9 +1,8 @@
+
 // Global SVG setup
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 const SVG = document.createElementNS(SVG_NS, "svg");
-// SVG.setAttribute("width", "800");
-// SVG.setAttribute("height", "600");
 let CONFIG = { //standard config
     "TEXT_COLOUR": "#000",
     "STATEMENT_COLOUR": "#fd83fd",
@@ -452,9 +451,8 @@ abstract class GeneralLoopCode extends Code {
         this.loopBox.onclick = (e:MouseEvent)=>new TextEditor(this,e, (newText:string) => {this.text = newText;});
         this._innerElement.ondblclick = this._innerElement.oncontextmenu = (e: MouseEvent) => {};
 
-        this.trueLabel.textContent = Words.get("true");
-        this.falseLabel.textContent = Words.get("false");
-        [this.trueLabel, this.falseLabel].forEach((l)=>l.setAttribute("font-size","xx-small"))
+        this.trueLabel.textContent = "true";
+        this.falseLabel.textContent = "false";
 
         this.trueLabel.setAttribute("text-anchor", "start");
         this.trueLabel.setAttribute("dominant-baseline", "hanging");
@@ -484,20 +482,18 @@ abstract class GeneralLoopCode extends Code {
         this.trueLabel.setAttribute("y", `${this.textbbox.height + 3 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
 
         this.falseLabel.setAttribute("x", `${this.leftSpace - (this.textbbox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH) / 2}`);
-        this.falseLabel.setAttribute("y", `${(this.textbbox.height + CONFIG.LINE_WIDTH) / 2 +2 * CONFIG.TEXT_MARGIN}`);
+        this.falseLabel.setAttribute("y", `${(this.textbbox.height - CONFIG.LINE_WIDTH) / 2+ CONFIG.TEXT_MARGIN}`);
 
 
         this.skipLoopLine.setAttribute("fill", "none");
         this.skipLoopLine.setAttribute("stroke", "red");
         this.skipLoopLine.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
-        // this.skipLoopLine.setAttribute("marker-end","url(#arrowEnd)");
         this.skipLoopLine.setAttribute("marker-start","url(#arrowStart)");
 
         this.restartLoopLine.setAttribute("fill", "none");
         this.restartLoopLine.setAttribute("stroke", "green");
         this.restartLoopLine.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
         this.restartLoopLine.setAttribute("marker-end","url(#arrowEnd)");
-        // this.restartLoopLine.setAttribute("marker-start","url(#arrowStart)");
 
         this.loopBoxShape.setAttribute("points", this.getLoopBoxPoints());
         this.skipLoopLine.setAttribute("points", this.getSkipLinePoints());
@@ -707,9 +703,9 @@ class DoWhileLoop extends Code {
         
         this.trueLabel.setAttribute("text-anchor", "start");
         this.trueLabel.setAttribute("dominant-baseline","hanging");
-        this.trueLabel.textContent = Words.get("true");
+        this.trueLabel.textContent = "true";
         this.falseLabel.setAttribute("text-anchor", "end");
-        this.falseLabel.textContent = Words.get("false");
+        this.falseLabel.textContent = "false";
         this.falseLabel.setAttribute("dominant-baseline","ideographic");
         
         this._innerElement.appendChild(this.trueLabel);
@@ -732,10 +728,6 @@ class DoWhileLoop extends Code {
     }
 
     protected innerUpdate():void {
-        // const wLoop: number = this.loopText.getBBox().width + 2 * CONFIG.TEXT_MARGIN + 2 * CONFIG.LINE_WIDTH;
-        // const hLoop: number = this.loopText.getBBox().height + 2 * CONFIG.TEXT_MARGIN + 2 * CONFIG.LINE_WIDTH;
-        // const wDo: number = this.doText.getBBox().width + 4 * CONFIG.TEXT_MARGIN + 2 * CONFIG.LINE_WIDTH;
-        // const hDo: number = this.doText.getBBox().height + 4 * CONFIG.TEXT_MARGIN + 2 * CONFIG.LINE_WIDTH;
         const wLoop: number = this.loopBBox.width + 2 * CONFIG.LINE_WIDTH;
         const hLoop: number = this.loopBBox.height + 2 * CONFIG.LINE_WIDTH;
         const wDo: number = (this.doTextBBox.width + 4 * CONFIG.TEXT_MARGIN) + 2 * CONFIG.LINE_WIDTH;
@@ -891,9 +883,9 @@ class IfStatementCode extends Code {
         
         this.trueLabel.setAttribute("text-anchor", "start");
         this.trueLabel.setAttribute("dominant-baseline","ideographic");
-        this.trueLabel.textContent = Words.get("true");
+        this.trueLabel.textContent = "true";
         this.falseLabel.setAttribute("text-anchor", "end");
-        this.falseLabel.textContent = Words.get("false");
+        this.falseLabel.textContent = "false";
         this.falseLabel.setAttribute("dominant-baseline","ideographic");
 
         this.textBox.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
@@ -1002,8 +994,6 @@ class IfStatementCode extends Code {
     }
 
     get width(): number {
-        //TODO:
-        // - implement?
         return this.leftSpace + this.rightSpace;
     }
 
@@ -1141,7 +1131,6 @@ class StartNode {
     }
     menuFunction(e: MouseEvent): void {
         e.preventDefault();
-        // const parent:CodeContainer = this.container;
         const map:Map<string,()=>void> = this.getContextMenuMap(e)
         CustomMenu.show(e.clientX, e.clientY, map);
     };
@@ -1226,9 +1215,8 @@ class Main {
     public readonly startNode: StartNode;
     public readonly endNode: EndNode;
     constructor(bodyElement: HTMLElement, private useUrl = true) {
-        bodyElement.appendChild(this.SVG); // Attach to DOM for rendering
+        bodyElement.appendChild(this.SVG);
         this.SVG.setAttribute("id", `mainCode_${this.id}`);
-        // this.SVG.style.transform = "scale(0.2)";
         this.SVG.innerHTML += `<defs>
     <marker id="arrow" markerWidth="${CONFIG.LINE_WIDTH}" markerHeight="${CONFIG.LINE_WIDTH}" refX="${CONFIG.LINE_WIDTH / 2}" refY="${CONFIG.LINE_WIDTH / 2}" orient="auto">
       <path d="M 0 0 L ${CONFIG.LINE_WIDTH} ${CONFIG.LINE_WIDTH / 2} L 0 ${CONFIG.LINE_WIDTH} z" />
@@ -1244,7 +1232,6 @@ class Main {
         this.startNode = new StartNode(this.SVG, this.container);
         this.endNode = new EndNode(this.SVG);
         requestAnimationFrame(this.init.bind(this));
-        // this.init();
     }
 
     init() {
@@ -1254,7 +1241,6 @@ class Main {
     }
 
     update() {
-        // this.container.update();
         const middle = Math.max(
             this.startNode._element.getBBox().width / 2,
             this.endNode._element.getBBox().width / 2,
@@ -1316,7 +1302,10 @@ function init() {
                 recursiveContentAdder(content.content,0,main.container);
             } else throw Error();
         } else{
-            new Tutorial();
+            if (! window.localStorage.getItem("tutorialSeen")){
+                new Tutorial();
+                window.localStorage.setItem("tutorialSeen", "1");
+            }
             throw Error();
         }
 

@@ -25,7 +25,6 @@ class TextEditor extends Editor {
         else if (current instanceof DoWhileLoop) {
             this.setBG(CONFIG.DO_WHILE_SHAPE_COLOUR);
         }
-        //todo: finish
         this.textInput.innerText = current.text;
         this.add(this.textInput);
         this.add(this.submitButton);
@@ -37,8 +36,6 @@ class TextEditor extends Editor {
         this.setSize("fit-content", "fit-content");
         this.setPosition(e.clientX, e.clientY);
         this.open();
-        // this.textInput.focus();
-        // // Select the text field
         this.textInput.select();
     }
 }
