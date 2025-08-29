@@ -17,7 +17,7 @@ let CONFIG = {
     "FUNCTION_SHAPE_COLOUR": "#ff6b6b",
     "MENU_COLOUR": "#ccc"
 };
-fetch("js/Three/config.json").then(e => e.json()).then(e => {
+fetch("noahklomp.github.io/Stream2/js/Three/config.json").then(e => e.json()).then(e => {
     CONFIG = Object.assign(Object.assign({}, CONFIG), e); // override with config.json
 }).then(() => {
     init();
