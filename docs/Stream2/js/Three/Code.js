@@ -17,10 +17,13 @@ let CONFIG = {
     "FUNCTION_SHAPE_COLOUR": "#ff6b6b",
     "MENU_COLOUR": "#ccc"
 };
-fetch("noahklomp.github.io/Stream2/js/Three/config.json").then(e => e.json()).then(e => {
+fetch("https://noahklomp.github.io/Stream2/js/Three/config.json").then(e => e.json()).then(e => {
     CONFIG = Object.assign(Object.assign({}, CONFIG), e); // override with config.json
 }).then(() => {
     init();
+}).catch((e) => {
+    init();
+    throw e;
 });
 var CodeType;
 (function (CodeType) {

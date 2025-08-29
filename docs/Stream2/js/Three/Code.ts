@@ -19,13 +19,16 @@ let CONFIG = { //standard config
     "MENU_COLOUR": "#ccc"
 };
 
-fetch("noahklomp.github.io/Stream2/js/Three/config.json").then(e => e.json()).then(e => {
+fetch("https://noahklomp.github.io/Stream2/js/Three/config.json").then(e => e.json()).then(e => {
     CONFIG = {
         ...CONFIG,
         ...e
     };// override with config.json
 }).then(() => {
     init();
+}).catch((e:Error)=> {
+    init();
+    throw e;
 });
 type XCor = number;
 type YCor = number;
