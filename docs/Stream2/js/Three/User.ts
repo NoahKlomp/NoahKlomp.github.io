@@ -7,7 +7,7 @@ class CustomMenu {
         CustomMenu.menu = document.createElement('div');
         CustomMenu.container.appendChild(CustomMenu.menu);
         CustomMenu.container.style.display = "none";
-        CustomMenu.container.style.position = 'absolute';
+        CustomMenu.container.style.position = 'fixed';
         CustomMenu.menu.className = 'custom-menu';
         CustomMenu.menu.style.display = 'flex';
         CustomMenu.menu.style.flexDirection = 'column';
