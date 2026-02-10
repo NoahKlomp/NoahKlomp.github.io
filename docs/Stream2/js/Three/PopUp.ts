@@ -18,6 +18,12 @@ abstract class PopUp {
         this.background_element.style.background = 'rgba(0, 0, 0, 0.45)';
         this.background_element.style.display = 'none'; // Initially hidden
         this.background_element.appendChild(this.element);
+        this.background_element.onclick = (e:MouseEvent) => {
+            if (e.target === this.background_element) {
+                this.close();
+                
+            }
+        }
         this.element.className = 'pop-up';
         this.element.style.position = 'fixed';
         this.element.style.left = "50px";
@@ -57,6 +63,7 @@ abstract class PopUp {
     protected empty() {
         this.element.innerHTML = '';
     }
+    
 
 
     public open(): void {
