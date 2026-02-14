@@ -1,5 +1,6 @@
-"use strict";
 class Creator extends PopUp {
+    form = document.createElement('form');
+    types = document.createElement('select');
     /*
         TODO: Add layout
      */
@@ -10,8 +11,6 @@ class Creator extends PopUp {
      */
     constructor(doAfter) {
         super();
-        this.form = document.createElement('form');
-        this.types = document.createElement('select');
         this.add(this.form);
         this.form.appendChild(this.types);
         let thing = document.createElement("option");

@@ -1097,3 +1097,665 @@ function init() {
 function exportAll() {
     return JSON.stringify(main.export);
 }
+class CodeMaker {
+    codeExport;
+    constructor(codeExport) {
+        this.codeExport = codeExport;
+    }
+    toCode() {
+        return this.toCodeRecursive(this.codeExport.content);
+    }
+    static indent(size) {
+        let s = "";
+        for (let i = 0; i < size; i++) {
+            s += "    ";
+        }
+        return s;
+    }
+}
+class PythonCodeMaker extends CodeMaker {
+    toCodeRecursive(codeExport, indent = 0) {
+        return codeExport.map((val) => {
+            const ind = CodeMaker.indent(indent);
+            switch (val.type) {
+                case CodeType.STATEMENT:
+                    return `${CodeMaker.indent(indent)}# ${val.text.replace("\n", "\n" + CodeMaker.indent(indent) + "# ")}`;
+                case CodeType.IF:
+                    const trueCode = val.content["True"] || [];
+                    const falseCode = val.content["False"] || [];
+                    return `${ind}if ${val.text.replace("\n", " ")}:\n` +
+                        `${this.toCodeRecursive(trueCode, indent + 1)}\n` +
+                        ((falseCode.length == 0) ? "" : (falseCode.length == 1 && falseCode[0].type == CodeType.IF) ? (`el${this.toCodeRecursive(falseCode, indent).trimStart()}`) : (`${ind}else:\n` +
+                            `${this.toCodeRecursive(falseCode, indent + 1)}`));
+                case CodeType.DO_WHILE:
+                    const dowhilecode = val.content["Looped"] || [];
+                    return `${ind}while True:\n` +
+                        `${this.toCodeRecursive(dowhilecode, indent + 1)}\n` +
+                        `${CodeMaker.indent(indent + 1)}if not (${val.text.replace("\n", " ")}):\n` +
+                        `${CodeMaker.indent(indent + 2)}break`;
+                case CodeType.FOR:
+                    const forcode = val.content["Looped"] || [];
+                    return `${ind}for ${val.text.replace("\n", " ")}:\n` +
+                        `${this.toCodeRecursive(forcode, indent + 1)}`;
+                case CodeType.WHILE:
+                    const whilecode = val.content["Looped"] || [];
+                    return `${ind}while ${val.text.replace("\n", " ")}:\n` +
+                        `${this.toCodeRecursive(whilecode, indent + 1)}`;
+                default:
+                    return "# " + Words.get("Unknown code");
+            }
+        }).join("\n");
+    }
+}
+class JavaCodeMaker extends CodeMaker {
+    toCodeRecursive(codeExport, indent = 0) {
+        return codeExport.map((val) => {
+            const ind = CodeMaker.indent(indent);
+            switch (val.type) {
+                case CodeType.STATEMENT:
+                    return `${CodeMaker.indent(indent)}// ${val.text.replace("\n", "\n" + CodeMaker.indent(indent) + "# ")}`;
+                case CodeType.IF:
+                    const trueCode = val.content["True"] || [Creator.getExport("STATEMENT")];
+                    const falseCode = val.content["False"] || [Creator.getExport("STATEMENT")];
+                    return `${ind}if (/*${val.text.replace("\n", " ")}*/) {\n` +
+                        `${this.toCodeRecursive(trueCode, indent + 1)}\n` +
+                        `${ind}} ` +
+                        ((falseCode.length == 0) ? "" : (falseCode.length == 1 && falseCode[0].type == CodeType.IF) ?
+                            `else ${this.toCodeRecursive(falseCode, indent).trimStart()}` :
+                            `else {\n` +
+                                `${this.toCodeRecursive(falseCode, indent + 1)}\n` +
+                                `${ind}}`);
+                case CodeType.DO_WHILE:
+                    const dowhilecode = val.content["Looped"] || [Creator.getExport("STATEMENT")];
+                    return `${ind}do {\n` +
+                        `${this.toCodeRecursive(dowhilecode, indent + 1)}\n` +
+                        `${ind}} while (/*${val.text.replace("\n", " ")}*/);`;
+                case CodeType.FOR:
+                    const forcode = val.content["Looped"] || [Creator.getExport("STATEMENT")];
+                    return `${ind}for (/*${val.text.replace("\n", " ")}*/) {\n` +
+                        `${this.toCodeRecursive(forcode, indent + 1)}\n` +
+                        `${ind}}`;
+                case CodeType.WHILE:
+                    const whilecode = val.content["Looped"] || [Creator.getExport("STATEMENT")];
+                    return `${ind}while (/*${val.text.replace("\n", " ")}*/) {\n` +
+                        `${this.toCodeRecursive(whilecode, indent + 1)}\n` +
+                        `}`;
+                default:
+                    return "// " + Words.get("Unknown code");
+            }
+        }).join("\n");
+    }
+}
+class Creator extends PopUp {
+    form = document.createElement('form');
+    types = document.createElement('select');
+    /*
+        TODO: Add layout
+     */
+    /**
+     * Creates an instance of Creator.
+     * This constructor is protected to prevent direct instantiation.
+     * Use subclasses to create specific instances.
+     */
+    constructor(doAfter) {
+        super();
+        this.add(this.form);
+        this.form.appendChild(this.types);
+        let thing = document.createElement("option");
+        thing.textContent = "select";
+        thing.disabled = true;
+        this.types.appendChild(thing);
+        for (let t in CodeType) {
+            if (!(t == "FUNCTION" || t == "MAIN")) {
+                let thing = document.createElement("option");
+                thing.textContent = Words.get(t);
+                thing.value = t;
+                this.types.appendChild(thing);
+            }
+        }
+        this.types.value = Words.get("Select");
+        this.types.onchange = (e) => {
+            e.preventDefault();
+            try {
+                return Creator.getExport(this.types.value);
+            }
+            finally {
+                this.close();
+            }
+        };
+        this.setSize("300", "300");
+        this.setPosition("50", 50);
+        this.setFullScreen();
+        this.open();
+    }
+    static exportToCode(export1, parent, index) {
+        switch (export1.type) {
+            case CodeType.STATEMENT:
+                return new StatementCode(parent, index, export1.text);
+            case CodeType.WHILE.toString():
+                if (export1.content) {
+                    if (export1.content["Looped"]) {
+                        const element = new WhileLoopCode(parent, index, export1.text);
+                        export1.content['Looped'].forEach((value, i) => {
+                            Creator.exportToCode(value, element.container, i);
+                        });
+                        return element;
+                    }
+                }
+                throw new InvalidExportError("Cannot obtain Looped content");
+            case CodeType.FOR.toString():
+                if (export1.content) {
+                    if (export1.content["Looped"]) {
+                        const element = new ForLoopCode(parent, index, export1.text);
+                        export1.content['Looped'].forEach((value, i) => {
+                            Creator.exportToCode(value, element.container, i);
+                        });
+                        return element;
+                    }
+                }
+                throw new InvalidExportError("Cannot obtain Looped content");
+            case CodeType.DO_WHILE.toString():
+                if (export1.content) {
+                    if (export1.content["Looped"]) {
+                        const element = new DoWhileLoop(parent, index, export1.text);
+                        export1.content['Looped'].forEach((value, i) => {
+                            Creator.exportToCode(value, element.container, i);
+                        });
+                        return element;
+                    }
+                }
+                throw new InvalidExportError("Cannot obtain Looped content");
+            case CodeType.IF.toString():
+                if (export1.content) {
+                    if (export1.content["True"] && export1.content["False"]) {
+                        const element = new IfStatementCode(parent, index, export1.text);
+                        export1.content['True'].forEach((value, i) => {
+                            Creator.exportToCode(value, element._trueContent, i);
+                        });
+                        export1.content['False'].forEach((value, i) => {
+                            Creator.exportToCode(value, element._falseContent, i);
+                        });
+                        return element;
+                    }
+                }
+                throw new InvalidExportError("Cannot obtain True and False content");
+            default:
+                throw new InvalidExportError("Given Export is not readable, export:" + export1);
+        }
+    }
+    static programExportToMain(pe, parentElement) {
+        const m = new Main(parentElement);
+        const titleEl = document.querySelector("title");
+        if (titleEl) {
+            titleEl.innerHTML = pe.name;
+        }
+        pe.content.forEach((value, i) => {
+            Creator.exportToCode(value, m.container, i);
+        });
+        return m;
+    }
+    static getExport(s) {
+        switch (s) {
+            case 'STATEMENT':
+                return ({
+                    type: CodeType.STATEMENT,
+                    content: {},
+                    text: "Empty Statement"
+                });
+            case 'WHILE':
+                return ({
+                    type: CodeType.WHILE,
+                    content: {
+                        Looped: [
+                            {
+                                type: CodeType.STATEMENT,
+                                content: {},
+                                text: "Empty Statement"
+                            }
+                        ]
+                    },
+                    text: "empty condition"
+                });
+            case 'FOR':
+                return ({
+                    type: CodeType.FOR,
+                    content: {
+                        Looped: [
+                            {
+                                type: CodeType.STATEMENT,
+                                content: {},
+                                text: "Empty Statement"
+                            }
+                        ]
+                    },
+                    text: "empty iteration"
+                });
+            case 'DO_WHILE':
+                return ({
+                    type: CodeType.DO_WHILE,
+                    content: {
+                        Looped: [
+                            {
+                                type: CodeType.STATEMENT,
+                                content: {},
+                                text: "Empty Statement"
+                            }
+                        ]
+                    },
+                    text: "empty condition"
+                });
+            case 'FUNCTION':
+                return ({
+                    type: CodeType.FUNCTION,
+                    content: {
+                        FunctionDefinition: [
+                            {
+                                type: CodeType.STATEMENT,
+                                content: {},
+                                text: "Empty Statement"
+                            }
+                        ]
+                    },
+                    text: "empty condition"
+                });
+            case 'IF':
+                return ({
+                    type: CodeType.IF,
+                    content: {
+                        True: [
+                            {
+                                type: CodeType.STATEMENT,
+                                content: {},
+                                text: "Empty Statement"
+                            }
+                        ],
+                        False: [
+                            {
+                                type: CodeType.STATEMENT,
+                                content: {},
+                                text: "Empty Statement"
+                            }
+                        ]
+                    },
+                    text: "empty condition"
+                });
+            default:
+                throw new InvalidExportError("Not recognized type name: " + s);
+        }
+    }
+}
+class InvalidExportError extends Error {
+    constructor(message) {
+        super(message);
+    }
+}
+class Editor extends PopUp {
+}
+;
+class TextEditor extends Editor {
+    static current = null;
+    textInput = document.createElement("textarea");
+    submitButton = document.createElement("button");
+    constructor(current, e, doAfter) {
+        super();
+        if (TextEditor.current) {
+            TextEditor.current.close();
+        }
+        TextEditor.current = this;
+        if (current instanceof StatementCode) {
+            this.setBG(CONFIG.STATEMENT_COLOUR);
+        }
+        else if (current instanceof IfStatementCode) {
+            this.setBG(CONFIG.IF_SHAPE_COLOUR);
+        }
+        else if (current instanceof ForLoopCode) {
+            this.setBG(CONFIG.FOR_SHAPE_COLOUR);
+        }
+        else if (current instanceof WhileLoopCode) {
+            this.setBG(CONFIG.WHILE_SHAPE_COLOUR);
+        }
+        else if (current instanceof DoWhileLoop) {
+            this.setBG(CONFIG.DO_WHILE_SHAPE_COLOUR);
+        }
+        this.textInput.innerText = current.text;
+        this.add(this.textInput);
+        this.add(this.submitButton);
+        this.submitButton.textContent = Words.get("Submit");
+        this.submitButton.onclick = (e) => {
+            doAfter(this.textInput.value);
+            this.close();
+        };
+        // bla bla
+        this.setSize("fit-content", "fit-content");
+        this.setPosition(e.clientX, e.clientY);
+        this.open();
+        this.textInput.select();
+    }
+}
+const languages = ["nl", "en"];
+function updateURLParams(params) {
+    const searchParams = new URLSearchParams(window.location.search);
+    for (const [key, value] of Object.entries(params)) {
+        if (value)
+            searchParams.set(key, value); // Only set non-empty values
+    }
+    const newURL = `${window.location.pathname}?${searchParams.toString()}`;
+    history.replaceState(params, '', newURL); // Update URL without reloading
+}
+(() => {
+    const current_lan = new URLSearchParams(window.location.search);
+    updateURLParams({
+        lan: current_lan.get("lan") || window.navigator.language.split("-")[0]
+    });
+})();
+class Translator {
+    static fullMap = new Map()
+        .set("nl", new Map([
+        ["Main Program", "Hoofdprogramma"],
+        ["true", "waar"],
+        ["false", "onwaar"],
+        ["Submit", "Pas toe"],
+        ["Quick tutorial", "Korte handleiding"],
+        ["Adding nodes", "Blokken toevoegen"],
+        ["addingNodesGuide", "Klik op de pijl tussen de begin en eind cirkel om een nieuw blok toe te voegen. Probeer hieronder."],
+        ["Changing nodes", "Blokken aanpassen"],
+        ["changingNodesGuide", "Klik op een blok om de tekst erop aan te passen."],
+        ["Edit me!", "Pas me aan!"],
+        ["Deleting nodes", "Blokken aanpassen"],
+        ["Delete me!", "Verwijder me!"],
+        ["deletingNodesGuide", "Klik met rechter muisknop op een blok om deze aan te passen."],
+        ["Select", "Selecteer"],
+        ["STATEMENT", "Opdracht"],
+        ["WHILE", "Zolang lus"],
+        ["FOR", "Voor-elke lus"],
+        ["DO_WHILE", "Doe-zolang lus"],
+        ["IF", "Als keuze"],
+        ["Add", "Voeg"],
+        ["add2", " toe"],
+        ["Remove", "Verwijderen"],
+        ["Add After", "Hierna toevoegen"],
+        ["Edit Text", "Tekst aanpassen"],
+        ["Copy Code", "Kopieer code"],
+        ["Copy URL", "Kopieer URL"],
+        ["Unknown code", "Onbekende code"],
+        ["To Python Comments", "Naar Python commentaar"],
+        ["To Java Comments", "Naar Java commentaar"],
+        ["Reset", "Reset"],
+        ["End", "Einde"],
+        ["Start", "Start"],
+        ["Export to image", "Als afbeelding opslaan"]
+    ]))
+        .set("en", new Map([
+        ["Main Program", "Main Program"],
+        ["addingNodesGuide", "Click on the arrow between two nodes to add a new node in between. You can try below."],
+        ["changingNodesGuide", "Click on a node to edit the text inside it."],
+        ["deletingNodesGuide", "Right-click on a node and left-click on remove, to remove the node from the flowchart."],
+        ["STATEMENT", "Statement"],
+        ["WHILE", "While loop"],
+        ["FOR", "For-each loop"],
+        ["DO_WHILE", "Do-While loop"],
+        ["IF", "If choice"],
+        ["Add", "Add"],
+        ["add2", " "]
+    ]));
+    static get urlpars() {
+        return new URLSearchParams(location.search);
+    }
+    static get(word, lan = this.lan) {
+        if (this.fullMap.has(lan)) {
+            const map = this.fullMap.get(lan);
+            return map ? (map.get(word) || word) : word;
+        }
+        else
+            return word;
+    }
+    static get lan() {
+        return languages.includes(this.urlpars.get("lan") || "") ? (this.urlpars.get("lan") || "") : "en";
+    }
+}
+class Words extends Translator {
+}
+class PopUp {
+    element = document.createElement('div');
+    background_element = document.createElement('div');
+    fullscreen = false;
+    closeButton = document.createElement('a');
+    constructor(closeOthers = true) {
+        this.background_element.className = 'pop-up-bg';
+        this.background_element.style.position = 'fixed';
+        this.background_element.style.left = "0";
+        this.background_element.style.top = "0";
+        this.background_element.style.bottom = "0";
+        this.background_element.style.right = "0";
+        this.background_element.style.zIndex = '1000';
+        this.background_element.style.borderRadius = '0';
+        this.background_element.style.padding = '10px';
+        this.background_element.style.background = 'rgba(0, 0, 0, 0.45)';
+        this.background_element.style.display = 'none'; // Initially hidden
+        this.background_element.appendChild(this.element);
+        this.background_element.onclick = (e) => {
+            if (e.target === this.background_element) {
+                this.close();
+            }
+        };
+        this.element.className = 'pop-up';
+        this.element.style.position = 'fixed';
+        this.element.style.left = "50px";
+        this.element.style.top = "50px";
+        this.background_element.style.zIndex = '1001';
+        this.element.style.backgroundColor = '#cececeff';
+        this.element.style.border = '1px solid #ccc';
+        this.element.style.borderRadius = '5px';
+        this.element.style.padding = '10px';
+        this.element.style.overflow = 'auto';
+        this.element.style.zIndex = '1001';
+        this.element.style.boxShadow = '0 2px 10px rgba(255, 255, 255, 0.1)';
+        this.element.style.display = 'none'; // Initially hidden
+        document.body.appendChild(this.background_element);
+        document.body.appendChild(this.element);
+        this.add(this.closeButton);
+        this.closeButton.innerHTML = 'X';
+        this.closeButton.className = 'close-button';
+        this.closeButton.style.display = 'block';
+        this.closeButton.style.background = "red";
+        this.closeButton.style.position = "fixed";
+        this.closeButton.style.right = "60px";
+        this.closeButton.style.top = "60px";
+        this.closeButton.style.borderRadius = "5px";
+        this.closeButton.style.padding = `${CONFIG.LINE_WIDTH}px`;
+        this.closeButton.onclick = this.close.bind(this);
+    }
+    setBG(background) {
+        this.element.style.background = background;
+    }
+    add(element) {
+        this.element.appendChild(element);
+    }
+    empty() {
+        this.element.innerHTML = '';
+    }
+    open() {
+        this.element.style.display = 'block';
+        this.background_element.style.display = 'block';
+        document.body.appendChild(this.element);
+    }
+    close() {
+        this.element.style.display = 'none';
+        this.background_element.style.display = 'none';
+        if (this.element.parentNode) {
+            this.element.parentNode.removeChild(this.element);
+            this.element.parentNode.removeChild(this.background_element);
+        }
+    }
+    setPosition(x, y) {
+        this.element.style.left = Number.isFinite(x) ? `${x}px` : x.toString();
+        this.element.style.top = Number.isFinite(y) ? `${y}px` : y.toString();
+        this.fullscreen = false;
+    }
+    setFullScreen() {
+        this.element.style.left = '50px';
+        this.element.style.top = '50px';
+        this.element.style.width = 'calc(100% - 100px)';
+        this.element.style.height = 'calc(100% - 100px)';
+        this.element.style.margin = '0';
+        this.element.style.padding = '20px';
+        this.element.style.boxSizing = 'border-box';
+        this.fullscreen = true;
+    }
+    setSize(width, height) {
+        this.element.style.width = width;
+        this.element.style.height = height;
+        this.element.style.boxSizing = 'border-box';
+        this.fullscreen = false;
+    }
+}
+class CopyCodePopUp extends PopUp {
+    static current;
+    preElement = document.createElement("pre");
+    codeElement = document.createElement("CODE");
+    contentElement = document.createElement("textarea");
+    copyButton = document.createElement("button");
+    constructor(lan, code) {
+        super();
+        if (CopyCodePopUp.current) {
+            CopyCodePopUp.current.close();
+        }
+        CopyCodePopUp.current = this;
+        this.codeElement.classList.add("language-" + lan);
+        this.preElement.appendChild(this.codeElement);
+        this.contentElement.style.display = "none";
+        this.copyButton.innerHTML = Words.get("Copy Code");
+        const codeString = lan === "python" ? new PythonCodeMaker(code).toCode() : lan === "java" ? new JavaCodeMaker(code).toCode() : "";
+        this.copyButton.onclick = () => {
+            var copyText = this.contentElement;
+            copyText.select();
+            navigator.clipboard.writeText(codeString);
+        };
+        this.add(this.copyButton);
+        this.add(this.preElement);
+        this.add(this.contentElement);
+        this.codeElement.innerHTML = this.contentElement.textContent = codeString;
+        this.setFullScreen();
+        this.open();
+    }
+    close() {
+        super.close();
+        CopyCodePopUp.current = null;
+    }
+}
+class Tutorial extends PopUp {
+    constructor() {
+        super();
+        let main = document.createElement("div");
+        this.add(main);
+        let content = [];
+        content.push(document.createElement("h1"));
+        main.appendChild(content[0]);
+        content[0].innerHTML = Words.get(`Quick tutorial`);
+        content.push(document.createElement("ol"));
+        main.appendChild(content[1]);
+        // Steps:
+        // Step 1
+        let steps = [document.createElement("li")];
+        content[1].appendChild(steps[0]);
+        steps[0].innerHTML = `<h2>${Words.get("Adding nodes")}</h2>
+                            <p>
+                                ${Words.get("addingNodesGuide")} 
+                            </p>`;
+        let first = document.createElement("div");
+        steps[0].appendChild(first);
+        let main_first_step = new Main(first, false);
+        //step 2
+        steps.push(document.createElement("li"));
+        content[1].appendChild(steps[1]);
+        steps[1].innerHTML = `<h2>${Words.get("Changing nodes")}</h2>
+                            <p>
+                                ${Words.get("changingNodesGuide")}
+                            </p>`;
+        let second = document.createElement("div");
+        steps[1].appendChild(second);
+        let main_second_step = new Main(second, false);
+        recursiveContentAdder([{ type: "StatementCode", content: null, text: Words.get("Edit me!") }], 0, main_second_step.container);
+        steps.push(document.createElement("li"));
+        content[1].appendChild(steps[2]);
+        steps[2].innerHTML = `<h2>${Words.get("Deleting nodes")}</h2>
+                            <p>
+                                ${Words.get("deletingNodesGuide")}
+                            </p>`;
+        let third = document.createElement("div");
+        steps[2].appendChild(third);
+        let main_third_step = new Main(third, false);
+        recursiveContentAdder([{ type: "StatementCode", content: null, text: Words.get("Delete me!") }], 0, main_third_step.container);
+        this.open();
+        this.setFullScreen();
+    }
+}
+class CustomMenu {
+    static menu;
+    static container;
+    static opened = false;
+    static initialize() {
+        CustomMenu.container = document.createElement("div");
+        CustomMenu.menu = document.createElement('div');
+        CustomMenu.container.appendChild(CustomMenu.menu);
+        CustomMenu.container.style.display = "none";
+        CustomMenu.container.style.position = 'fixed';
+        CustomMenu.menu.className = 'custom-menu';
+        CustomMenu.menu.style.display = 'flex';
+        CustomMenu.menu.style.flexDirection = 'column';
+        CustomMenu.menu.style.alignContent = 'stretch';
+        CustomMenu.menu.style.maxHeight = '200px';
+        CustomMenu.menu.style.margin = 'auto';
+        CustomMenu.menu.style.width = '100%';
+        CustomMenu.container.style.zIndex = "1020";
+        document.body.appendChild(CustomMenu.container);
+    }
+    static show(x, y, items) {
+        if (CustomMenu.opened) {
+            CustomMenu.hide();
+            CustomMenu.opened = false;
+        }
+        console.log("CustomMenu.show", x, y, items);
+        CustomMenu.reset();
+        if (items.size > 0) {
+            items.forEach((item, name) => {
+                const menuItem = CustomMenu.customItemElement();
+                menuItem.textContent = name;
+                menuItem.onclick = () => {
+                    item();
+                    CustomMenu.hide();
+                };
+                CustomMenu.menu.appendChild(menuItem);
+            });
+        }
+        CustomMenu.container.style.left = `${x}px`;
+        CustomMenu.container.style.top = `${y}px`;
+        CustomMenu.container.style.backgroundColor = CONFIG.MENU_COLOUR;
+        CustomMenu.container.style.display = 'block';
+        CustomMenu.opened = true;
+    }
+    static reset() {
+        CustomMenu.menu.innerHTML = '';
+    }
+    static hide() {
+        CustomMenu.container.style.display = 'none';
+        CustomMenu.opened = false;
+    }
+    static customItemElement() {
+        const item = document.createElement('div');
+        item.style.margin = '2px';
+        item.style.padding = '5px';
+        item.style.backgroundColor = '#f0f0f0';
+        item.style.border = '1px solid #ccc';
+        item.style.borderRadius = '5px';
+        item.className = 'clickable';
+        return item;
+    }
+}
+CustomMenu.initialize();
+document.onclick = () => { CustomMenu.hide(); };
+(document.getElementById('CopyUrlButton') || document.createElement("button")).innerHTML = Words.get('Copy URL');
+(document.getElementById('PythonButton') || document.createElement("button")).innerHTML = Words.get('To Python Comments');
+(document.getElementById('JavaButton') || document.createElement("button")).innerHTML = Words.get('To Java Comments');
+(document.getElementById('ResetButton') || document.createElement("button")).innerHTML = Words.get('Reset');
+(document.getElementById('toImgButton') || document.createElement("button")).innerHTML = Words.get('Export to image');

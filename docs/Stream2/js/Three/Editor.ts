@@ -1,4 +1,4 @@
-abstract class Editor extends PopUp {}
+abstract class Editor extends PopUp {};
 
 interface HasText {
     set text(newText:string);
@@ -6,7 +6,7 @@ interface HasText {
 }
 class TextEditor extends Editor {
     
-    private static current:TextEditor | null;
+    private static current:TextEditor | null = null;
     textInput:HTMLTextAreaElement = document.createElement("textarea");
     submitButton:HTMLButtonElement = document.createElement("button");
     constructor(current: HasText,e:MouseEvent, doAfter: (newText: string) => void) {
@@ -34,6 +34,7 @@ class TextEditor extends Editor {
             doAfter(this.textInput.value);
             this.close();
         }
+        // bla bla
         
         this.setSize("fit-content","fit-content");
         this.setPosition(e.clientX, e.clientY);

@@ -1,5 +1,5 @@
-"use strict";
 class CodeMaker {
+    codeExport;
     constructor(codeExport) {
         this.codeExport = codeExport;
     }

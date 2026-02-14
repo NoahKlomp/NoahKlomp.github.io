@@ -1,11 +1,12 @@
-"use strict";
 class Editor extends PopUp {
 }
+;
 class TextEditor extends Editor {
+    static current = null;
+    textInput = document.createElement("textarea");
+    submitButton = document.createElement("button");
     constructor(current, e, doAfter) {
         super();
-        this.textInput = document.createElement("textarea");
-        this.submitButton = document.createElement("button");
         if (TextEditor.current) {
             TextEditor.current.close();
         }
@@ -33,6 +34,7 @@ class TextEditor extends Editor {
             doAfter(this.textInput.value);
             this.close();
         };
+        // bla bla
         this.setSize("fit-content", "fit-content");
         this.setPosition(e.clientX, e.clientY);
         this.open();

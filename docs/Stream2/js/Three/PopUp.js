@@ -1,10 +1,9 @@
-"use strict";
 class PopUp {
+    element = document.createElement('div');
+    background_element = document.createElement('div');
+    fullscreen = false;
+    closeButton = document.createElement('a');
     constructor(closeOthers = true) {
-        this.element = document.createElement('div');
-        this.background_element = document.createElement('div');
-        this.fullscreen = false;
-        this.closeButton = document.createElement('a');
         this.background_element.className = 'pop-up-bg';
         this.background_element.style.position = 'fixed';
         this.background_element.style.left = "0";
@@ -17,6 +16,11 @@ class PopUp {
         this.background_element.style.background = 'rgba(0, 0, 0, 0.45)';
         this.background_element.style.display = 'none'; // Initially hidden
         this.background_element.appendChild(this.element);
+        this.background_element.onclick = (e) => {
+            if (e.target === this.background_element) {
+                this.close();
+            }
+        };
         this.element.className = 'pop-up';
         this.element.style.position = 'fixed';
         this.element.style.left = "50px";
@@ -89,12 +93,13 @@ class PopUp {
     }
 }
 class CopyCodePopUp extends PopUp {
+    static current;
+    preElement = document.createElement("pre");
+    codeElement = document.createElement("CODE");
+    contentElement = document.createElement("textarea");
+    copyButton = document.createElement("button");
     constructor(lan, code) {
         super();
-        this.preElement = document.createElement("pre");
-        this.codeElement = document.createElement("CODE");
-        this.contentElement = document.createElement("textarea");
-        this.copyButton = document.createElement("button");
         if (CopyCodePopUp.current) {
             CopyCodePopUp.current.close();
         }

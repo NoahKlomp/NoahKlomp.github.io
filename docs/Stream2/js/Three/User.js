@@ -1,5 +1,7 @@
-"use strict";
 class CustomMenu {
+    static menu;
+    static container;
+    static opened = false;
     static initialize() {
         CustomMenu.container = document.createElement("div");
         CustomMenu.menu = document.createElement('div');
@@ -58,7 +60,6 @@ class CustomMenu {
         return item;
     }
 }
-CustomMenu.opened = false;
 CustomMenu.initialize();
 document.onclick = () => { CustomMenu.hide(); };
 (document.getElementById('CopyUrlButton') || document.createElement("button")).innerHTML = Words.get('Copy URL');
