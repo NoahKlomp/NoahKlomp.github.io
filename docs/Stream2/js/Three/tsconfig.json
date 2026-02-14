@@ -4,7 +4,8 @@
     "module": "None",          // Crucial: Tells TS these aren't modules
     // "rootDir": "./src",        // Where your .ts files are
     // "outDir": "./dist",        // Where your .js files will go
-    "strict": false            // Optional: stricter checks might complain about globals
+    "strict": true,            // Optional: stricter checks might complain about globals
+    "outFile": "./dist/main.js"
   },
   "include": ["./*"]
 }
