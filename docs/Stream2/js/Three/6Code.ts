@@ -9,6 +9,7 @@ let CONFIG = { //standard config
     "SHAPE_MARGIN": 15,
     "TEXT_MARGIN": 10,
     "LINE_WIDTH": 2,
+    "TEXT_SIZE": 15,
     "LINE_COLOUR": "#000",
     "MAIN_SHAPE_COLOUR": "#0ff",
     "WHILE_SHAPE_COLOUR": "#f80",
@@ -56,8 +57,13 @@ type FunctionExport = {
     type: "Function",
     name: string,
     content: Content,
-
 }
+type Size = {
+    width: number,
+    height:number
+}
+
+
 type Content = {
     [key: string]: Export[] | undefined;
 };
@@ -99,10 +105,21 @@ interface Updatable {
     update(): void;
 }
 
+function getTextDimentions(text: string, fontSize: number = CONFIG.TEXT_SIZE, fontFamily: string = "monospace"): Size {
+    
+    let canvas = document.createElement('canvas');
+    let context: CanvasRenderingContext2D | null = canvas.getContext('2d');
+    if (context) {
+        context.font = `${fontSize}px ${fontFamily}`;
+        return {width: context.measureText(text).width, height:fontSize};
+    }
+    return {width:0* text.length * 10, height:fontSize};
+  
+}
 
 class ConnectingLine {
     private line: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
-    private element: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
+    private element: SVGGElement = document.createElementNS(SVG_NS, "g");
 
     public readonly id: number = ids.get();
     constructor(private parent: CodeContainer, public index:number) {
@@ -120,8 +137,9 @@ class ConnectingLine {
         this.element.ondblclick = this.element.onclick = this.element.oncontextmenu = this.menuFunction.bind(this);
     }
     setMid(cor: Coordinates): ConnectingLine {
-        this.element.setAttribute("x",`${cor.x - 2 * CONFIG.LINE_WIDTH}`);
-        this.element.setAttribute("y", `${cor.y}`);
+        // this.element.setAttribute("x",`${cor.x - 2 * CONFIG.LINE_WIDTH}`);
+        // this.element.setAttribute("y", `${cor.y}`);
+        this.element.style.transform = `translate(${cor.x - 2 * CONFIG.LINE_WIDTH}px, ${cor.y}px)`;
         return this;
     }
     setColour(newColour: string):ConnectingLine {
@@ -136,8 +154,6 @@ class ConnectingLine {
         e.preventDefault();
         openAddMenu(c(e.clientX, e.clientY),this.parent, this.index);
     }
-
-    
 }
 function openAddMenu(cors:Coordinates, parent:CodeContainer, indexToAdd:number) {
     requestAnimationFrame(()=>{
@@ -155,11 +171,11 @@ function openAddMenu(cors:Coordinates, parent:CodeContainer, indexToAdd:number) 
 
 class CodeContainer implements Updatable {
     protected content: Array<Code> = [];
-    public readonly view: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
+    public readonly view: SVGGElement = document.createElementNS(SVG_NS, "g");
     protected lines: Array<ConnectingLine> = [ new ConnectingLine(this, 0)]
     private _line_colour: string = CONFIG.LINE_COLOUR;
     public readonly id = ids.get();
-    constructor(protected parentElement: SVGSVGElement,
+    constructor(protected parentElement: SVGGElement,
                 protected parent: Updatable) {
         parentElement.appendChild(this.view);
         this.view.setAttribute("id", `container_${this.id}`);
@@ -239,8 +255,8 @@ class CodeContainer implements Updatable {
     }
 
     setTopMid(coords: Coordinates) {
-        this.view.setAttribute("x", `${coords.x - this.leftSpace}`);
-        this.view.setAttribute("y", `${coords.y}`);
+        this.view.style.transform =  `translate(${coords.x - this.leftSpace}px, ${coords.y}px)`;
+        // this.view.setAttribute("y", `${coords.y}`);
     }
     clear() {
         this.content.forEach((): void => {
@@ -260,10 +276,10 @@ abstract class Code implements Updatable {
     protected constructor(
         public readonly parent: CodeContainer,
         public index: number,
-        public readonly _innerElement: SVGSVGElement = document.createElementNS(SVG_NS, "svg")
+        public readonly _innerElement: SVGGElement = document.createElementNS(SVG_NS, "g")
     ) {
-        this._innerElement.setAttribute("x", `${0}`);
-        this._innerElement.setAttribute("y", `${CONFIG.SHAPE_MARGIN}`);
+        this._innerElement.style.transform = `translate(${0}px, ${CONFIG.SHAPE_MARGIN}px)`;
+        // this._innerElement.setAttribute("y", `${CONFIG.SHAPE_MARGIN}`);
         this._innerElement.setAttribute("id", `${this.constructor.name}_inner_${this.id}`);
         this._innerElement.classList.add(`${this.constructor.name}`);
 
@@ -334,13 +350,13 @@ abstract class Code implements Updatable {
     protected abstract innerUpdate(): void;
 
     setTopMid(coords: Coordinates) {
-        requestAnimationFrame(() => {
-            this._innerElement.setAttribute("x", `${coords.x - this.leftSpace}`);
-            this._innerElement.setAttribute("y", `${coords.y}`);
-        });
+        // requestAnimationFrame(() => {
+            this._innerElement.style.transform = `translate(${coords.x - this.leftSpace}px, ${coords.y}px`;
+            // this._innerElement.setAttribute("y", `${coords.y}`);
+        // });
     }
 
-    addTo(parentElement: SVGSVGElement) {
+    addTo(parentElement: SVGGElement) {
         parentElement.appendChild(this._innerElement);
     }
 }
@@ -348,8 +364,9 @@ abstract class Code implements Updatable {
 
 class StatementCode extends Code {
     private _textElement = document.createElementNS(SVG_NS, "text");
+
     private _rectangle = document.createElementNS(SVG_NS, "rect");
-    private textbbox:DOMRect = this._textElement.getBBox();
+    private textbbox:Size = getTextDimentions("");
     /*
         TODO:
           - Shape border?
@@ -359,6 +376,8 @@ class StatementCode extends Code {
         this._innerElement.setAttribute("class", "statement");
         this._innerElement.appendChild(this._rectangle);
         this._innerElement.appendChild(this._textElement);
+        this._textElement.style.fontFamily = `monospace`;
+        this._textElement.style.fontSize = `${CONFIG.TEXT_SIZE}px`
         this.text = text;
         
         this._innerElement.oncontextmenu =
@@ -386,10 +405,13 @@ class StatementCode extends Code {
 
         this._textElement.setAttribute("text-anchor", "start");
         this._textElement.setAttribute("dominant-baseline", "hanging");
-        this._textElement.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
-        this._textElement.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
-        this._rectangle.setAttribute("x", `${0}`);
-        this._rectangle.setAttribute("y", `${0}`);
+        // this._textElement.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
+        // this._textElement.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
+        this._textElement.style.transform = `translate(${CONFIG.TEXT_MARGIN}px, ${CONFIG.TEXT_MARGIN}px)`;
+        // this._rectangle.setAttribute("x", `${0}`);
+        // this._rectangle.setAttribute("y", `${0}`);
+        this._rectangle.style.transform = `translate(${0}px,${0}px)`;
+
         this._rectangle.setAttribute("class", "statement-rect");
         this._rectangle.setAttribute("fill", CONFIG.STATEMENT_COLOUR);
         this._rectangle.setAttribute("width", `${this.width}`);
@@ -398,11 +420,11 @@ class StatementCode extends Code {
 
     set text(newText: string) {
         this._textElement.innerHTML = newText.replace("\n","<br/>");
-        requestAnimationFrame(()=>{
-            this.textbbox = this._textElement.getBBox();
+        // requestAnimationFrame(()=>{
+            this.textbbox = getTextDimentions(this.text);//this._textElement.getBBox();
             this.update();
 
-        });
+        // });
     }
     get text():string {
         return this._textElement.textContent || "";
@@ -413,10 +435,10 @@ class StatementCode extends Code {
 type RegularLoopType = CodeType.FOR | CodeType.WHILE;
 
 abstract class GeneralLoopCode extends Code {
-    private loopBox: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
+    private loopBox: SVGGElement = document.createElementNS(SVG_NS, "g");
     private loopBoxShape: SVGPolygonElement = document.createElementNS(SVG_NS, "polygon");
     private loopText: SVGTextElement = document.createElementNS(SVG_NS, "text");
-    private textbbox: DOMRect = this.loopText.getBBox();
+    private textbbox: Size = getTextDimentions("")
     private skipLoopLine: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
     private restartLoopLine: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
     private trueLabel:SVGTextElement = document.createElementNS(SVG_NS, "text");
@@ -432,8 +454,11 @@ abstract class GeneralLoopCode extends Code {
         this.container = new CodeContainer(this._innerElement, this);
         this.container.line_colour = "green";
         this.text = text;
-        this.loopText.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
-        this.loopText.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
+        // this.loopText.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
+        // this.loopText.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
+        this.loopText.style.transform = `translate(${CONFIG.TEXT_MARGIN}px,${CONFIG.TEXT_MARGIN}px)`;
+        this.loopText.style.fontFamily = `monospace`;
+        this.loopText.style.fontSize = `${CONFIG.TEXT_SIZE}px`;
         this.loopText.setAttribute("text-anchor", "start");
         this.loopText.setAttribute("dominant-baseline", "hanging");
 
@@ -470,7 +495,10 @@ abstract class GeneralLoopCode extends Code {
 
 
     innerUpdate(): void {
-        this.container.setTopMid(c(this.leftSpace, this.loopBox.getBBox().height));
+        this.container.setTopMid(c(this.leftSpace, 
+            // this.loopBox.getBBox().height
+            this.textbbox.height + 2 * CONFIG.TEXT_MARGIN + CONFIG.SHAPE_MARGIN/2
+        ));
 
         this._innerElement.setAttribute("height", `${this.height}`);
 
@@ -480,13 +508,14 @@ abstract class GeneralLoopCode extends Code {
         this.loopBox.setAttribute("width", `${this.textbbox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
         this.loopBox.setAttribute("height", `${this.textbbox.height + 3 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
 
-        this.loopBox.setAttribute("x", `${this.leftSpace - (this.textbbox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH) / 2}`);
+        this.loopBox.style.transform = `translate(${this.leftSpace - (this.textbbox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH) / 2}px,${0}px)`;
+        this.trueLabel.style.transform = `translate(${this.leftSpace + 2 * CONFIG.LINE_WIDTH}px,${this.textbbox.height + 3 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}px)`
+        // this.trueLabel.setAttribute("x", `${this.leftSpace + 2 * CONFIG.LINE_WIDTH}`);
+        // this.trueLabel.setAttribute("y", `${this.textbbox.height + 3 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
 
-        this.trueLabel.setAttribute("x", `${this.leftSpace + 2 * CONFIG.LINE_WIDTH}`);
-        this.trueLabel.setAttribute("y", `${this.textbbox.height + 3 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
-
-        this.falseLabel.setAttribute("x", `${this.leftSpace - (this.textbbox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH) / 2}`);
-        this.falseLabel.setAttribute("y", `${(this.textbbox.height - CONFIG.LINE_WIDTH) / 2+ CONFIG.TEXT_MARGIN}`);
+        this.falseLabel.style.transform = `translate(${this.leftSpace - (this.textbbox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH) / 2}px,${(this.textbbox.height - CONFIG.LINE_WIDTH) / 2 + CONFIG.TEXT_MARGIN}px)`
+        // this.falseLabel.setAttribute("x", `${this.leftSpace - (this.textbbox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH) / 2}`);
+        // this.falseLabel.setAttribute("y", `${(this.textbbox.height - CONFIG.LINE_WIDTH) / 2+ CONFIG.TEXT_MARGIN}`);
 
 
         this.skipLoopLine.setAttribute("fill", "none");
@@ -601,10 +630,10 @@ abstract class GeneralLoopCode extends Code {
 
     set text(newText: string) {
         this.loopText.innerHTML = newText.replace("\n","<br/>");
-        requestAnimationFrame(()=>{
-            this.textbbox = this.loopText.getBBox();
+        // requestAnimationFrame(()=>{
+            this.textbbox = getTextDimentions(this.text); //this.loopText.getBBox();
             this.update();
-        });
+        // });
     }
     get text(): string {
         return this.loopText.textContent || ""
@@ -639,12 +668,12 @@ class ForLoopCode extends GeneralLoopCode {
 }
 
 class DoWhileLoop extends Code {
-    protected doBox: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
+    protected doBox: SVGGElement = document.createElementNS(SVG_NS, "g");
     private doText: SVGTextElement = document.createElementNS(SVG_NS, "text");
     private doTextBBox: {height:number, width:number} = this.doText.getBBox();
     private doBBox: {height:number, width:number} = this.doBox.getBBox();
     private doShape: SVGPolygonElement = document.createElementNS(SVG_NS, "polygon");
-    protected loopBox: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
+    protected loopBox: SVGGElement = document.createElementNS(SVG_NS, "g");
     private loopText: SVGTextElement = document.createElementNS(SVG_NS, "text");
     private textBBox:{height:number, width:number} = this.loopText.getBBox();
     private loopShape: SVGPolygonElement = document.createElementNS(SVG_NS, "polygon");
@@ -682,9 +711,12 @@ class DoWhileLoop extends Code {
         
         this.doText.setAttribute("text-anchor", "start");
         this.doText.setAttribute("dominant-baseline", "hanging");
-        this.doText.setAttribute("x", `${2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
-        this.doText.setAttribute("y", `${CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+        // this.doText.setAttribute("x", `${2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+        // this.doText.setAttribute("y", `${CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
+        this.doText.style.transform = `translate(${2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}px, ${CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}px)`;
         
+        this.doText.style.fontFamily = `monospace`;
+        this.doText.style.fontSize = `${CONFIG.TEXT_SIZE}px`;
         
         this._innerElement.appendChild(this.doBox);
 
@@ -695,8 +727,14 @@ class DoWhileLoop extends Code {
         this.text = text;
         this.loopText.setAttribute("text-anchor", "start");
         this.loopText.setAttribute("dominant-baseline", "hanging");
-        this.loopText.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
-        this.loopText.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
+
+        this.loopText.style.fontFamily = `monospace`;
+        this.loopText.style.fontSize = `${CONFIG.TEXT_SIZE}px`;
+        
+        
+        // this.loopText.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
+        // this.loopText.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
+        this.loopText.style.transform = `translate(${CONFIG.TEXT_MARGIN}px, ${CONFIG.TEXT_MARGIN}px)`;
         this.loopBox.ondblclick = this.loopBox.oncontextmenu = this.menuFunction.bind(this);
         this.loopBox.onclick = (e:MouseEvent)=>new TextEditor(this,e, (newText:string) => {this.text = newText;});
         this.doBox.ondblclick = this.doBox.oncontextmenu = this.menuFunction.bind(this);
@@ -740,19 +778,25 @@ class DoWhileLoop extends Code {
         
         const cPoint = Math.max(0,wLoop / 2, wDo / 2, this.container.leftSpace);
 
-        this.trueLabel.setAttribute("x",`${cPoint + wLoop / 2}` );
-        this.trueLabel.setAttribute("y",`${hDo + this.container.height + hLoop / 2 }` );
+        // this.trueLabel.setAttribute("x",`${cPoint + wLoop / 2}` );
+        // this.trueLabel.setAttribute("y",`${hDo + this.container.height + hLoop / 2 }` );
+        this.trueLabel.style.transform = `translate(${cPoint + wLoop / 2}px, ${hDo + this.container.height + hLoop / 2 }px)`;
 
-        this.falseLabel.setAttribute("x",`${cPoint - 3 * CONFIG.LINE_WIDTH}` );
-        this.falseLabel.setAttribute("y",`${hDo + this.container.height + hLoop + CONFIG.LINE_WIDTH}` );
-
+        // this.falseLabel.setAttribute("x",`${cPoint - 3 * CONFIG.LINE_WIDTH}` );
+        // this.falseLabel.setAttribute("y",`${hDo + this.container.height + hLoop + CONFIG.LINE_WIDTH}` );
+        this.falseLabel.style.transform = `translate(${cPoint - 3 * CONFIG.LINE_WIDTH}px, ${hDo + this.container.height + hLoop + CONFIG.LINE_WIDTH}px)`;
 
         this.loopShape.setAttribute("points", this.getLoopBoxPoints());
-        this.doBox.setAttribute("x",`${cPoint - wDo / 2}`);
-        this.doBox.setAttribute("y",`${0}`);
+        // this.doBox.setAttribute("x",`${cPoint - wDo / 2}`);
+        // this.doBox.setAttribute("y",`${0}`);
+        this.doBox.style.transform = `translate(${cPoint - wDo / 2}px,0px)`;
         this.container.setTopMid(c(cPoint, hDo));
-        this.loopBox.setAttribute("x",`${cPoint - wLoop / 2}`);
-        this.loopBox.setAttribute("y",`${hDo + this.container.height}`);
+
+
+        // this.loopBox.setAttribute("x",`${cPoint - wLoop / 2}`);
+        // this.loopBox.setAttribute("y",`${hDo + this.container.height}`);
+        this.loopBox.style.transform = `translate(${cPoint - wLoop / 2}px, ${hDo + this.container.height}px)`;
+
         this.loopBox.setAttribute("height",`${this.textBBox.height + 3 * CONFIG.TEXT_MARGIN + 1.5 * CONFIG.LINE_WIDTH}`);
         this.loopBox.setAttribute("width",`${this.textBBox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}`);
         this.restartLine.setAttribute("points", this.getRestartPoints());
@@ -761,8 +805,8 @@ class DoWhileLoop extends Code {
     set text(newText:string) {
         this.loopText.textContent = newText.replace("\n","<br/>");
         requestAnimationFrame(()=>{
-            this.textBBox = this.loopText.getBBox();
-            this.loopBBox ={
+            this.textBBox = getTextDimentions(this.text);
+            this.loopBBox = {
                 height : this.textBBox.height + 3 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH,
                 width: this.textBBox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH
             }
@@ -857,10 +901,10 @@ class DoWhileLoop extends Code {
 class IfStatementCode extends Code {
     public readonly _falseContent: CodeContainer;
     public readonly _trueContent: CodeContainer;
-    private ifBox: SVGSVGElement = document.createElementNS(SVG_NS, "svg");
+    private ifBox: SVGGElement = document.createElementNS(SVG_NS, "g");
     private ifBoxShape: SVGPolygonElement = document.createElementNS(SVG_NS, "polygon");
     private textBox: SVGTextElement = document.createElementNS(SVG_NS, "text");
-    private textBBox: DOMRect = this.textBox.getBBox();
+    private textBBox: Size = getTextDimentions("");
     private _falseLine1: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
     private _falseLine2: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
     private _trueLine1: SVGPolylineElement = document.createElementNS(SVG_NS, "polyline");
@@ -892,11 +936,13 @@ class IfStatementCode extends Code {
         this.falseLabel.textContent = "false";
         this.falseLabel.setAttribute("dominant-baseline","ideographic");
 
-        this.textBox.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
-        this.textBox.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
+        // this.textBox.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
+        // this.textBox.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
+        this.textBox.style.transform = `translate(${CONFIG.TEXT_MARGIN}px, ${CONFIG.TEXT_MARGIN}px)`;
         this.textBox.setAttribute("text-anchor", "start");
         this.textBox.setAttribute("dominant-baseline", "hanging");
         this.textBox.textContent = text;
+        
 
         this.ifBoxShape.setAttribute("fill", CONFIG.IF_SHAPE_COLOUR);
         this.ifBoxShape.setAttribute("stroke", this.parent.line_colour);
@@ -915,8 +961,13 @@ class IfStatementCode extends Code {
         });
         [this._trueLine1,this._falseLine1].forEach(line=>line.setAttribute("marker-start","url(#arrowStart)"));
         
-        this.textBox.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
-        this.textBox.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
+        // this.textBox.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
+        // this.textBox.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
+        this.textBox.style.transform = `translate(${CONFIG.TEXT_MARGIN}px,${CONFIG.TEXT_MARGIN})`;
+
+        this.textBox.style.fontFamily = `monospace`;
+        this.textBox.style.fontSize = `${CONFIG.TEXT_SIZE}px`;
+
         this.ifBox.ondblclick = this.ifBox.oncontextmenu = this.menuFunction.bind(this);
         this._innerElement.ondblclick = this._innerElement.oncontextmenu = (e: MouseEvent) => {
         };
@@ -930,11 +981,13 @@ class IfStatementCode extends Code {
     innerUpdate(): void {
         this.ifBoxShape.setAttribute("points", this.getIfBoxPoints());
         this.ifBox.setAttribute("x", `${this.leftSpace - ((this.textBBox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH) / 2)}`);
-        
-        this.trueLabel.setAttribute("x",`${this.leftSpace + (this.textBBox.width + 2 * CONFIG.TEXT_MARGIN - CONFIG.LINE_WIDTH)/2}`);
-        this.trueLabel.setAttribute("y",`${this.textBBox.height + 2 * CONFIG.TEXT_MARGIN}`);
-        this.falseLabel.setAttribute("x",`${this.leftSpace - (this.textBBox.width + 2 * CONFIG.TEXT_MARGIN - CONFIG.LINE_WIDTH)/2}`);
-        this.falseLabel.setAttribute("y",`${this.textBBox.height + 2 * CONFIG.TEXT_MARGIN}`);
+        this.ifBox.style.transform = `translate(${this.leftSpace - ((this.textBBox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH) / 2)}px,0px)`;
+        // this.trueLabel.setAttribute("x",`${this.leftSpace + (this.textBBox.width + 2 * CONFIG.TEXT_MARGIN - CONFIG.LINE_WIDTH)/2}`);
+        // this.trueLabel.setAttribute("y",`${this.textBBox.height + 2 * CONFIG.TEXT_MARGIN}`);
+        this.trueLabel.style.transform = `translate(${this.leftSpace + (this.textBBox.width + 2 * CONFIG.TEXT_MARGIN - CONFIG.LINE_WIDTH)/2}px, ${this.textBBox.height + 2 * CONFIG.TEXT_MARGIN}px)`;
+        // this.falseLabel.setAttribute("x",`${this.leftSpace - (this.textBBox.width + 2 * CONFIG.TEXT_MARGIN - CONFIG.LINE_WIDTH)/2}`);
+        // this.falseLabel.setAttribute("y",`${this.textBBox.height + 2 * CONFIG.TEXT_MARGIN}`);
+        this.falseLabel.style.transform = `translate(${this.leftSpace - (this.textBBox.width + 2 * CONFIG.TEXT_MARGIN - CONFIG.LINE_WIDTH)/2}px,${this.textBBox.height + 2 * CONFIG.TEXT_MARGIN}px)`;
         this.arrangeContainers();
     }
 
@@ -1035,7 +1088,7 @@ class IfStatementCode extends Code {
     set text(newText:string) {
         this.textBox.innerHTML = newText.replace("\n","<br/>");
         requestAnimationFrame(()=>{
-            this.textBBox = this.textBox.getBBox();
+            this.textBBox = getTextDimentions(newText);
             this.update();
         });
     }
@@ -1076,7 +1129,7 @@ class IfStatementCode extends Code {
  */
 class StartNode {
     public readonly id:number = ids.get();
-    public readonly _element:SVGSVGElement = document.createElementNS(SVG_NS, "svg");
+    public readonly _element:SVGGElement = document.createElementNS(SVG_NS, "g");
     private _textElement:SVGTextElement = document.createElementNS(SVG_NS, "text");
     private _ellipseElement:SVGEllipseElement  = document.createElementNS(SVG_NS, "ellipse");
 
@@ -1089,10 +1142,16 @@ class StartNode {
         this._textElement.classList.add("textElement");
         this._textElement.classList.add("StartNode_text");
         this._textElement.textContent = Words.get("Start");
-        this._textElement.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
-        this._textElement.setAttribute("y", `${CONFIG.TEXT_MARGIN }`);
+
+        
+        // this._textElement.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
+        // this._textElement.setAttribute("y", `${CONFIG.TEXT_MARGIN }`);
+        this._textElement.style.transform = `translate(${CONFIG.TEXT_MARGIN}px,${CONFIG.TEXT_MARGIN}px)`;
         this._textElement.setAttribute("text-anchor", "start");
         this._textElement.setAttribute("dominant-baseline", "hanging");
+
+        this._textElement.style.fontFamily = `monospace`;
+        this._textElement.style.fontSize = `${CONFIG.TEXT_SIZE}px`;
 
         this._ellipseElement.setAttribute("fill", CONFIG.MAIN_SHAPE_COLOUR);
         this._ellipseElement.id = `ellipseElement_${this.id}`;
@@ -1109,16 +1168,17 @@ class StartNode {
     }
 
     get width(): number {
-        return this._textElement.getBBox().width + 2 * CONFIG.TEXT_MARGIN;
+        return getTextDimentions(this._textElement.textContent).width + 2 * CONFIG.TEXT_MARGIN;
     }
 
     get height(): number {
-        return this._textElement.getBBox().height + 2 * CONFIG.TEXT_MARGIN;
+        return getTextDimentions(this._textElement.textContent).height + 2 * CONFIG.TEXT_MARGIN;
     }
 
     update() {
-        const width = this._textElement.getBBox().width + 2 * CONFIG.TEXT_MARGIN;
-        const height = this._textElement.getBBox().height + 2 * CONFIG.TEXT_MARGIN;
+        const textsizes = getTextDimentions(this._textElement.textContent);
+        const width = textsizes.width + 2 * CONFIG.TEXT_MARGIN;
+        const height = textsizes.height + 2 * CONFIG.TEXT_MARGIN;
         this._element.setAttribute("width", `${width}`);
         this._element.setAttribute("height", `${height + CONFIG.SHAPE_MARGIN}`);
         this._ellipseElement.setAttribute("cx", `${width / 2}`);
@@ -1130,8 +1190,9 @@ class StartNode {
     }
 
     updateTopMid(coords: Coordinates) {
-        this._element.setAttribute("x", `${coords.x - this._element.getBBox().width / 2}`);
-        this._element.setAttribute("y", `${coords.y}`);
+        // this._element.setAttribute("x", `${coords.x - this.width / 2}`);
+        // this._element.setAttribute("y", `${coords.y}`);
+        this._element.style.transform = `translate(${coords.x - this.width / 2}px, ${coords.y}px)`;
     }
     menuFunction(e: MouseEvent): void {
         e.preventDefault();
@@ -1153,7 +1214,7 @@ class StartNode {
  */
 class EndNode {
     public readonly id:number = ids.get();
-    public readonly _element:SVGSVGElement = document.createElementNS(SVG_NS, "svg");
+    public readonly _element:SVGGElement = document.createElementNS(SVG_NS, "g");
     private _textElement:SVGTextElement = document.createElementNS(SVG_NS, "text");
     private _ellipseElement:SVGEllipseElement  = document.createElementNS(SVG_NS, "ellipse");
 
@@ -1166,10 +1227,15 @@ class EndNode {
         this._textElement.classList.add("textElement");
         this._textElement.classList.add("EndNode_text");
         this._textElement.textContent = Words.get("End");
-        this._textElement.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
-        this._textElement.setAttribute("y", `${CONFIG.TEXT_MARGIN }`);
+        // this._textElement.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
+        // this._textElement.setAttribute("y", `${CONFIG.TEXT_MARGIN }`);
+        this._textElement.style.transform = `translate(${CONFIG.TEXT_MARGIN}px, ${CONFIG.TEXT_MARGIN}px)`;
         this._textElement.setAttribute("text-anchor", "start");
         this._textElement.setAttribute("dominant-baseline", "hanging");
+
+
+        this._textElement.style.fontFamily = `monospace`;
+        this._textElement.style.fontSize = `${CONFIG.TEXT_SIZE}px`;
 
         this._ellipseElement.setAttribute("fill", CONFIG.MAIN_SHAPE_COLOUR);
         this._ellipseElement.id = `ellipseElement_${this.id}`;
@@ -1186,20 +1252,23 @@ class EndNode {
     }
 
     get width(): number {
-        return this._textElement.getBBox().width + 2 * CONFIG.TEXT_MARGIN;
+        return getTextDimentions(this._textElement.textContent).width + 2 * CONFIG.TEXT_MARGIN;
     }
 
     get height(): number {
-        return this._textElement.getBBox().height + CONFIG.TEXT_MARGIN;
+        return getTextDimentions(this._textElement.textContent).height + CONFIG.TEXT_MARGIN;
     }
 
     update() {
-        const width = this._textElement.getBBox().width + 2 * CONFIG.TEXT_MARGIN;
-        const height = this._textElement.getBBox().height + 2 * CONFIG.TEXT_MARGIN;
+        const textsizes = getTextDimentions(this._textElement.textContent);
+        const width = textsizes.width + 2 * CONFIG.TEXT_MARGIN;
+        const height = textsizes.height + 2 * CONFIG.TEXT_MARGIN;
         this._element.setAttribute("width", `${width}`);
         this._element.setAttribute("height", `${height}`)
-        this._textElement.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
-        this._textElement.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
+        // this._textElement.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
+        // this._textElement.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
+
+        this._textElement.style.transform = `translate(${CONFIG.TEXT_MARGIN}px,${CONFIG.TEXT_MARGIN}px)`;
         this._ellipseElement.setAttribute("cx", `${width / 2}`);
         this._ellipseElement.setAttribute("cy", `${height / 2}`);
         this._ellipseElement.setAttribute("rx", `${width / 2}`);
@@ -1207,8 +1276,11 @@ class EndNode {
     }
 
     updateTopMid(coords: Coordinates) {
-        this._element.setAttribute("x", `${coords.x - this._element.getBBox().width / 2}`);
-        this._element.setAttribute("y", `${coords.y}`);
+        // this._element.setAttribute("x", `${coords.x - this.width / 2}`);
+        // this._element.setAttribute("y", `${coords.y}`);
+
+        this._element.style.transform = `translate(${coords.x - this.width / 2}px, ${coords.y}px)`;
+        this.update();
     }
 }
 
@@ -1246,19 +1318,19 @@ class Main {
 
     update() {
         const middle = Math.max(
-            this.startNode._element.getBBox().width / 2,
-            this.endNode._element.getBBox().width / 2,
+            this.startNode.width / 2,
+            this.endNode.width / 2,
             this.container.leftSpace);
         const width = Math.max(
-            this.startNode._element.getBBox().width,
-            this.endNode._element.getBBox().width,
+            this.startNode.width,
+            this.endNode.width,
             this.container.width);
         this.startNode.updateTopMid(c(middle, 0));
-        this.container.setTopMid(c(middle, this.startNode._element.getBBox().height));
-        this.endNode.updateTopMid(c(middle, this.startNode._element.getBBox().height + this.container.height));
+        this.container.setTopMid(c(middle, this.startNode.height));
+        this.endNode.updateTopMid(c(middle, this.startNode.height + this.container.height));
         this.SVG.setAttribute("width", `${width}`);
         this.SVG.setAttribute("height", `${
-            (this.container.height + this.startNode._element.getBBox().height + this.endNode._element.getBBox().height)
+            (this.container.height + this.startNode.height + this.endNode.height + CONFIG.SHAPE_MARGIN)
         }`);
         if (this.useUrl) {
             updateURLParams({init:JSON.stringify(this.export)});

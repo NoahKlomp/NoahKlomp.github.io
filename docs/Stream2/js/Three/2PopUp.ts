@@ -70,7 +70,6 @@ abstract class PopUp {
         this.element.style.display = 'block';
         this.background_element.style.display = 'block';
         document.body.appendChild(this.element);
-
     }
     public close(): void {
         this.element.style.display = 'none';
