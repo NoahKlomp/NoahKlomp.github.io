@@ -34,6 +34,8 @@ class Translator {
             ["Select", "Selecteer"],
             ["STATEMENT", "Opdracht"],
             ["WHILE", "While lus"],
+            ["While","Zolang"],
+            ["For","Voor elke"],
             ["FOR", "for lus"],
             ["DO_WHILE", "Do-While lus"],
             ["IF", "keuze"],

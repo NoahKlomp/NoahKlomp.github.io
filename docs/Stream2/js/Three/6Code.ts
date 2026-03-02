@@ -259,9 +259,9 @@ class CodeContainer implements Updatable {
         // this.view.setAttribute("y", `${coords.y}`);
     }
     clear() {
-        this.content.forEach((): void => {
-            this.remove(0);
-        });
+        const len = this.content.length;
+        for (let i = len - 1; i >= 0; i--)
+            this.remove(i);
     }
 
 }
@@ -568,8 +568,8 @@ abstract class GeneralLoopCode extends Code {
         const width: number = this.textbbox.width + 2 * CONFIG.TEXT_MARGIN;
         return [
             `${CONFIG.LINE_WIDTH / 2},${ CONFIG.LINE_WIDTH / 2 }`,
-            `${width - CONFIG.LINE_WIDTH / 2},${ CONFIG.LINE_WIDTH / 2 }`,
-            `${width - CONFIG.LINE_WIDTH / 2},${height}`,
+            `${width + CONFIG.LINE_WIDTH / 2},${ CONFIG.LINE_WIDTH / 2 }`,
+            `${width + CONFIG.LINE_WIDTH / 2},${height}`,
             `${width / 2},${height + CONFIG.TEXT_MARGIN}`,
             `${CONFIG.LINE_WIDTH / 2},${height - CONFIG.LINE_WIDTH / 2}`,
             `${CONFIG.LINE_WIDTH / 2},${ CONFIG.LINE_WIDTH / 2 }`
@@ -624,7 +624,7 @@ abstract class GeneralLoopCode extends Code {
         return {
             type: this.type,
             content: {"Looped": this.container.export},
-            text: this.loopText.textContent || ""
+            text: this.text || ""
         };
     }
 
@@ -641,7 +641,7 @@ abstract class GeneralLoopCode extends Code {
     set text(newText: string) {
         this.loopText.innerHTML = newText.replace("\n","<br/>");
         // requestAnimationFrame(()=>{
-            this.textbbox = getTextDimentions(this.text); //this.loopText.getBBox();
+            this.textbbox = getTextDimentions(newText); //this.loopText.getBBox();
             this.update();
         // });
     }
@@ -665,6 +665,15 @@ class WhileLoopCode extends GeneralLoopCode {
 
     constructor(parent: CodeContainer, index: number, text: string) {
         super(parent, index, CodeType.WHILE, text);
+        this.text = text;
+        
+    }
+    set text(newText:string) {
+        super.text = Words.get("While") + " " + newText;
+
+    }
+    get text() {
+        return super.text.substring(Words.get("While").length + 1);
     }
 }
 
@@ -674,6 +683,15 @@ class ForLoopCode extends GeneralLoopCode {
 
     constructor(parent: CodeContainer, index: number, text: string) {
         super(parent, index, CodeType.FOR, text);
+        this.text = text;
+        
+    }
+    set text(newText:string) {
+        super.text = Words.get("For") + " " + newText;
+
+    }
+    get text() {
+        return super.text.substring(7);
     }
 }
 
@@ -701,7 +719,7 @@ class DoWhileLoop extends Code {
         super(parent, index);
         
         this.container = new CodeContainer(this._innerElement, this);
-        
+        this.container.line_colour = CONFIG.LINE_COLOUR;
         this.loopBox.appendChild(this.loopShape);
         [this.doShape, this.loopShape].forEach(shape => {
             shape.setAttribute("fill", CONFIG.DO_WHILE_SHAPE_COLOUR);
@@ -1124,7 +1142,7 @@ class IfStatementCode extends Code {
             `${CONFIG.LINE_WIDTH},${CONFIG.LINE_WIDTH / 2 + height / 2}`,
             `${CONFIG.LINE_WIDTH + CONFIG.TEXT_MARGIN * 2},${CONFIG.LINE_WIDTH / 2}`,
             `${CONFIG.LINE_WIDTH + width - CONFIG.TEXT_MARGIN * 2},${CONFIG.LINE_WIDTH / 2}`,
-            `${CONFIG.LINE_WIDTH + width - 2},${CONFIG.LINE_WIDTH / 2 + height / 2}`,
+            `${ width},${CONFIG.LINE_WIDTH / 2 + height / 2}`,
             `${CONFIG.LINE_WIDTH + width - CONFIG.TEXT_MARGIN * 2},${CONFIG.LINE_WIDTH / 2 + height}`,
             `${CONFIG.LINE_WIDTH + CONFIG.TEXT_MARGIN * 2},${CONFIG.LINE_WIDTH / 2 + height}`,
             `${CONFIG.LINE_WIDTH},${CONFIG.LINE_WIDTH / 2 + height / 2}`
@@ -1141,7 +1159,8 @@ class IfStatementCode extends Code {
             })
             .set("Add to start of false block", () => {
                 openAddMenu(c(e.clientX,e.clientY),this._falseContent, 0)
-            }).set("Clear false block", () => {
+            })
+            .set("Clear false block", () => {
                 this._falseContent.clear();
             });
     }
@@ -1329,6 +1348,7 @@ class Main {
     </marker>
   </defs>`;
         this.container = new CodeContainer(this.SVG, this);
+        this.container.line_colour = CONFIG.LINE_COLOUR;
         this.startNode = new StartNode(this.SVG, this.container);
         this.endNode = new EndNode(this.SVG);
         requestAnimationFrame(this.init.bind(this));

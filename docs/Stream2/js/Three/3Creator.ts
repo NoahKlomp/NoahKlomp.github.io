@@ -40,7 +40,7 @@
                 this.close();
             }
         }
-        this.setSize("300","300");
+        // this.setSize("fit-content","fit-content");
         this.setPosition("50",50);
         this.setFullScreen();
         this.open();
