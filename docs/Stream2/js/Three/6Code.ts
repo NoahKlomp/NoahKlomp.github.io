@@ -133,7 +133,7 @@ class ConnectingLine {
         parent.view.appendChild(this.element);
         this.line.setAttribute("marker-mid", "url(#arrow)");
         this.line.setAttribute("stroke-width", `${CONFIG.LINE_WIDTH}`);
-        this.setColour(CONFIG.LINE_COLOUR);
+        this.setColour(parent.line_colour);
         this.element.ondblclick = this.element.onclick = this.element.oncontextmenu = this.menuFunction.bind(this);
     }
     setMid(cor: Coordinates): ConnectingLine {
@@ -480,14 +480,24 @@ abstract class GeneralLoopCode extends Code {
         this.loopBox.onclick = (e:MouseEvent)=>new TextEditor(this,e, (newText:string) => {this.text = newText;});
         this._innerElement.ondblclick = this._innerElement.oncontextmenu = (e: MouseEvent) => {};
 
-        this.trueLabel.textContent = "true";
-        this.falseLabel.textContent = "false";
+        this.trueLabel.textContent = "✓";
+        this.falseLabel.textContent = "⨯";
 
         this.trueLabel.setAttribute("text-anchor", "start");
         this.trueLabel.setAttribute("dominant-baseline", "hanging");
+        
+
+        this.trueLabel.style.fontFamily = `monospace`;
+        this.trueLabel.style.fontSize = `${CONFIG.TEXT_SIZE*1.5}px`;
+        
+        
         this.falseLabel.setAttribute("dominant-baseline", "ideographic");
         this.falseLabel.setAttribute("text-anchor", "end");
 
+
+        this.falseLabel.style.fontFamily = `monospace`;
+        this.falseLabel.style.fontSize = `${CONFIG.TEXT_SIZE *1.5}px`;
+        
         requestAnimationFrame((): void => {
             this.update();
         });
@@ -516,7 +526,7 @@ abstract class GeneralLoopCode extends Code {
         this.falseLabel.style.transform = `translate(${this.leftSpace - (this.textbbox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH) / 2}px,${(this.textbbox.height - CONFIG.LINE_WIDTH) / 2 + CONFIG.TEXT_MARGIN}px)`
         // this.falseLabel.setAttribute("x", `${this.leftSpace - (this.textbbox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH) / 2}`);
         // this.falseLabel.setAttribute("y", `${(this.textbbox.height - CONFIG.LINE_WIDTH) / 2+ CONFIG.TEXT_MARGIN}`);
-
+        
 
         this.skipLoopLine.setAttribute("fill", "none");
         this.skipLoopLine.setAttribute("stroke", "red");
@@ -745,11 +755,18 @@ class DoWhileLoop extends Code {
         
         this.trueLabel.setAttribute("text-anchor", "start");
         this.trueLabel.setAttribute("dominant-baseline","hanging");
-        this.trueLabel.textContent = "true";
+        this.trueLabel.textContent = "✓";
+        this.trueLabel.style.fontFamily = `monospace`;
+        this.trueLabel.style.fontSize = `${CONFIG.TEXT_SIZE*1.5}px`;
+        
         this.falseLabel.setAttribute("text-anchor", "end");
-        this.falseLabel.textContent = "false";
+        this.falseLabel.textContent = "⨯";
         this.falseLabel.setAttribute("dominant-baseline","ideographic");
         
+        this.falseLabel.style.fontFamily = `monospace`;
+        this.falseLabel.style.fontSize = `${CONFIG.TEXT_SIZE*1.5}px`;
+        
+
         this._innerElement.appendChild(this.trueLabel);
         this._innerElement.appendChild(this.falseLabel);
 
@@ -782,9 +799,10 @@ class DoWhileLoop extends Code {
         // this.trueLabel.setAttribute("y",`${hDo + this.container.height + hLoop / 2 }` );
         this.trueLabel.style.transform = `translate(${cPoint + wLoop / 2}px, ${hDo + this.container.height + hLoop / 2 }px)`;
 
+        
         // this.falseLabel.setAttribute("x",`${cPoint - 3 * CONFIG.LINE_WIDTH}` );
         // this.falseLabel.setAttribute("y",`${hDo + this.container.height + hLoop + CONFIG.LINE_WIDTH}` );
-        this.falseLabel.style.transform = `translate(${cPoint - 3 * CONFIG.LINE_WIDTH}px, ${hDo + this.container.height + hLoop + CONFIG.LINE_WIDTH}px)`;
+        this.falseLabel.style.transform = `translate(${cPoint - 3 * CONFIG.LINE_WIDTH}px, ${hDo + this.container.height + hLoop + CONFIG.LINE_WIDTH * 2}px)`;
 
         this.loopShape.setAttribute("points", this.getLoopBoxPoints());
         // this.doBox.setAttribute("x",`${cPoint - wDo / 2}`);
@@ -931,14 +949,20 @@ class IfStatementCode extends Code {
         
         this.trueLabel.setAttribute("text-anchor", "start");
         this.trueLabel.setAttribute("dominant-baseline","ideographic");
-        this.trueLabel.textContent = "true";
+        this.trueLabel.textContent = "✓";
+        this.trueLabel.style.fontFamily = `monospace`;
+        this.trueLabel.style.fontSize = `${CONFIG.TEXT_SIZE*1.5}px`;
+        
         this.falseLabel.setAttribute("text-anchor", "end");
-        this.falseLabel.textContent = "false";
+        this.falseLabel.textContent = "⨯";
         this.falseLabel.setAttribute("dominant-baseline","ideographic");
 
+        this.falseLabel.style.fontFamily = `monospace`;
+        this.falseLabel.style.fontSize = `${CONFIG.TEXT_SIZE*1.5}px`;
+        
         // this.textBox.setAttribute("x", `${CONFIG.TEXT_MARGIN}`);
         // this.textBox.setAttribute("y", `${CONFIG.TEXT_MARGIN}`);
-        this.textBox.style.transform = `translate(${CONFIG.TEXT_MARGIN}px, ${CONFIG.TEXT_MARGIN}px)`;
+        this.textBox.style.transform = `translate(${CONFIG.TEXT_MARGIN}px, ${CONFIG.TEXT_MARGIN+CONFIG.TEXT_SIZE/4}px)`;
         this.textBox.setAttribute("text-anchor", "start");
         this.textBox.setAttribute("dominant-baseline", "hanging");
         this.textBox.textContent = text;
@@ -984,10 +1008,10 @@ class IfStatementCode extends Code {
         this.ifBox.style.transform = `translate(${this.leftSpace - ((this.textBBox.width + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH) / 2)}px,0px)`;
         // this.trueLabel.setAttribute("x",`${this.leftSpace + (this.textBBox.width + 2 * CONFIG.TEXT_MARGIN - CONFIG.LINE_WIDTH)/2}`);
         // this.trueLabel.setAttribute("y",`${this.textBBox.height + 2 * CONFIG.TEXT_MARGIN}`);
-        this.trueLabel.style.transform = `translate(${this.leftSpace + (this.textBBox.width + 2 * CONFIG.TEXT_MARGIN - CONFIG.LINE_WIDTH)/2}px, ${this.textBBox.height + 2 * CONFIG.TEXT_MARGIN}px)`;
+        this.trueLabel.style.transform = `translate(${this.leftSpace + (this.textBBox.width + 2 * CONFIG.TEXT_MARGIN - CONFIG.LINE_WIDTH)/2}px, ${this.textBBox.height + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}px)`;
         // this.falseLabel.setAttribute("x",`${this.leftSpace - (this.textBBox.width + 2 * CONFIG.TEXT_MARGIN - CONFIG.LINE_WIDTH)/2}`);
         // this.falseLabel.setAttribute("y",`${this.textBBox.height + 2 * CONFIG.TEXT_MARGIN}`);
-        this.falseLabel.style.transform = `translate(${this.leftSpace - (this.textBBox.width + 2 * CONFIG.TEXT_MARGIN - CONFIG.LINE_WIDTH)/2}px,${this.textBBox.height + 2 * CONFIG.TEXT_MARGIN}px)`;
+        this.falseLabel.style.transform = `translate(${this.leftSpace - (this.textBBox.width + 2 * CONFIG.TEXT_MARGIN - CONFIG.LINE_WIDTH)/2}px,${this.textBBox.height + 2 * CONFIG.TEXT_MARGIN + CONFIG.LINE_WIDTH}px)`;
         this.arrangeContainers();
     }
 
