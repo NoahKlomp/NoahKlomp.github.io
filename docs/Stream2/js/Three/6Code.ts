@@ -691,7 +691,7 @@ class ForLoopCode extends GeneralLoopCode {
 
     }
     get text() {
-        return super.text.substring(7);
+        return super.text.substring(Words.get("For").length + 1);
     }
 }
 

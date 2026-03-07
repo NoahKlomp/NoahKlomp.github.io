@@ -16,12 +16,11 @@ abstract class PopUp {
         this.background_element.style.borderRadius = '0';
         this.background_element.style.padding = '10px';
         this.background_element.style.background = 'rgba(0, 0, 0, 0.45)';
-        this.background_element.style.display = 'none'; // Initially hidden
+        this.background_element.style.display = 'none';
         this.background_element.appendChild(this.element);
         this.background_element.onclick = (e:MouseEvent) => {
             if (e.target === this.background_element) {
                 this.close();
-                
             }
         }
         this.element.className = 'pop-up';
@@ -42,9 +41,11 @@ abstract class PopUp {
         document.body.appendChild(this.element);
 
         this.add(this.closeButton);
-        this.closeButton.innerHTML = 'X';
+        this.closeButton.innerHTML = 'x';
         this.closeButton.className = 'close-button';
         this.closeButton.style.display = 'block';
+        this.closeButton.style.fontFamily = 'monospace';
+        this.closeButton.style.fontSize = '20px';
         this.closeButton.style.background = "red";
         this.closeButton.style.position = "fixed";
         this.closeButton.style.right = "60px";

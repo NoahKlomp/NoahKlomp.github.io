@@ -100,7 +100,7 @@ class PopUp {
         this.background_element.style.borderRadius = '0';
         this.background_element.style.padding = '10px';
         this.background_element.style.background = 'rgba(0, 0, 0, 0.45)';
-        this.background_element.style.display = 'none'; // Initially hidden
+        this.background_element.style.display = 'none';
         this.background_element.appendChild(this.element);
         this.background_element.onclick = (e) => {
             if (e.target === this.background_element) {
@@ -123,9 +123,11 @@ class PopUp {
         document.body.appendChild(this.background_element);
         document.body.appendChild(this.element);
         this.add(this.closeButton);
-        this.closeButton.innerHTML = 'X';
+        this.closeButton.innerHTML = 'x';
         this.closeButton.className = 'close-button';
         this.closeButton.style.display = 'block';
+        this.closeButton.style.fontFamily = 'monospace';
+        this.closeButton.style.fontSize = '20px';
         this.closeButton.style.background = "red";
         this.closeButton.style.position = "fixed";
         this.closeButton.style.right = "60px";
@@ -1169,7 +1171,7 @@ class ForLoopCode extends GeneralLoopCode {
         super.text = Words.get("For") + " " + newText;
     }
     get text() {
-        return super.text.substring(7);
+        return super.text.substring(Words.get("For").length + 1);
     }
 }
 class DoWhileLoop extends Code {
