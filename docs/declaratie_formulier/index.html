@@ -76,15 +76,15 @@
     
     <div class="form-group">
         <label for="clientName">Jouw naam:</label>
-        <input type="text" id="clientName" value="Alice Smith">
+        <input type="text" id="clientName" >
     </div>
     
     <div class="form-group">
         <label for="sellerName">Verkoper/winkel</label>
-        <input type="email" id="sellerName" value="alice@example.com">
+        <input type="email" id="sellerName" >
     </div>
     <div id="products">
-        <button type="button" id="addButton">toevoegen</button>
+        <button type="button" id="addButton">Voeg product toe</button>
         <!-- 
         <div class="form-group">
             <label for="desc_0">Item</label>
@@ -153,6 +153,10 @@
             canvasSeller.getContext("2d").scale(ratio, ratio);
             signaturePadSeller.clear(); // otherwise isEmpty() might return incorrect value
         }
+        document.getElementById("clientName").placeholder = "Oppie";
+        document.getElementById("sellerName").placeholder = "PenguinBar";
+
+
 
         // window.addEventListener("resize", resizeCanvas);
         resizeCanvas();
