@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -72,47 +72,92 @@
 </head>
 <body>
 
-    <h2>Declaratie formulier maker</h2>
-    
-    <div class="form-group">
-        <label for="clientName">Jouw naam:</label>
-        <input type="text" id="clientName" >
-    </div>
-    
-    <div class="form-group">
-        <label for="sellerName">Verkoper/winkel</label>
-        <input type="email" id="sellerName" >
-    </div>
-    <div id="products">
-        <button type="button" id="addButton">Voeg product toe</button>
-        <!-- 
-        <div class="form-group">
-            <label for="desc_0">Item</label>
-            <input type="text" id="desc_0" value="Banaan">
-        </div>
-        <div class="form-group">
-            <label for="amount_0">Prijs (€)</label>
-            <input type="number" id="amount_0" value="0.0">
-        </div>
-        <hr> -->
-    </div>
+    <h2>Declaratie formulier</h2>
+    <!-- <form id="fullForm"> -->
 
-    <div class="form-group">
-        <label>Jouw handtekening</label>
-        <div class="signature-container">
-            <canvas id="signatureCanvasMember" width="800" height="300"></canvas>
+        <div class="form-group">
+            <label for="clientName">Jouw naam:</label>
+            <input type="text" id="clientName" >
         </div>
-        <button type="button" class="btn-clear" id="clearBtnMember">Opnieuw</button>
-    </div>
-    <div class="form-group">
-        <label>Handtekening of paraaf verkoper</label>
-        <div class="signature-container">
-            <canvas id="signatureCanvasSeller" width="800" height="300"></canvas>
+        
+        <div class="form-group">
+            <label for="sellerName">Verkoper/winkel</label>
+            <input type="text" id="sellerName" >
         </div>
-        <button type="button" class="btn-clear" id="clearBtnSeller">Opnieuw</button>
-    </div>
+        <div class="form-group" id="products">
+            <button type="button" id="addButton">Voeg product toe</button>
+            <!-- 
+                <div class="form-group">
+                    <label for="desc_0">Item</label>
+                    <input type="text" id="desc_0" value="Banaan">
+                </div>
+                <div class="form-group">
+                    <label for="amount_0">Prijs (€)</label>
+                    <input type="number" id="amount_0" value="0.0">
+                </div>
+                <hr> -->
+            </div>
+            <div class="form-group">
+                <label for="bewijsmateriaalUpload">Upload bewijsmateriaal</label>
+                <details>
+                    <summary>Wat is bewijsmateriaal?</summary>
+                    <p>
+                        Om uitbetaald te kunnen krijgen, heb je een van onderstaande combinaties nodig:
+                        </p>
+                        <b>Bonnetje</b>
+                        <ul>
+                            <li>Een volledige en duidelijke foto van het bonnetje.  </li>
+                            <li>Als maar een deel van het bonnetje wordt gedeclareerd, geef dan hierboven aan wat je wilt declareren door producten toe te voegen.</li>
+                            <li>Als het bonnetje niet duidelijk maakt waar voor betaald is, geef dit ook hierboven aan. </li>
 
-    <button id="generateBtn">Maak PDF</button>
+                        </ul>
+
+                        <b>Geen bonnetje?</b>
+                        <p>Alleen als er aan alle onderstaande voorwaarden voldaan wordt, kan dit uitbetaald worden.</p>
+                        <ul>
+                            <li>Een foto van dit item op de locatie waar deze gevonden is en waaruit de prijs duidelijk is. (marktplaats gesprek, foto van de markt, etc.)</li>
+                            <li>Een foto van dit item in jouw bezit, in de opslag, thuis, etc. Stuur deze achteraf mee.</li>
+                            <li>Een handtekening van de verkoper. Zet onderaan neer. Genereer na het tekenen gelijk de pdf, zodat deze niet verloren gaat.</li>
+                        </ul>
+                    </p>
+                </details>
+                <input  type="file" 
+                        name="bewijsmateriaalUpload" 
+                        id="bewijsmateriaalUpload"
+                        accept="image/png, image/jpeg"
+                        multiple>
+            </div>
+            
+            <div class="form-group">
+                <label>Jouw handtekening</label>
+                <div class="signature-container">
+                    <canvas id="signatureCanvasMember" width="800" height="300"></canvas>
+                </div>
+                <button type="button" class="btn-clear" id="clearBtnMember">Opnieuw</button>
+            </div>
+            <div class="form-group">
+                <label>Handtekening of paraaf verkoper</label>
+                <details>
+                    <summary>
+                        Wat?
+                    </summary>
+                    <p>
+                        Deze heb je alleen nodig als je geen bonnetje hebt. Laat deze dan ook terplekke ondertekenen. 
+                    </p>
+                </details>
+                <div class="signature-container">
+                    <canvas id="signatureCanvasSeller" width="800" height="300"></canvas>
+                </div>
+                <button type="button" class="btn-clear" id="clearBtnSeller">Opnieuw</button>
+            </div>
+
+            <div class="form-group">
+                <label for="ibanMember">IBAN</label>
+                <input type="text" id="ibanMember" >
+            </div>
+            <button id="generateBtn">Maak PDF</button>
+            <!-- <input type="button" value="Maak PDF"> -->
+        <!-- </form> -->
     <div id="status"></div>
 
     <script type="module">
@@ -130,28 +175,30 @@
         // Initialize the Signature Pad
         const canvasMember = document.getElementById('signatureCanvasMember');
         const signaturePadMember = new SignaturePad(canvasMember
-        // , {
-        //     penColor: "rgb(0, 0, 100)",
-        //     minWidth: 2,
-        //     maxWidth: 5
-        // } 
-    );
-        const canvasSeller = document.getElementById('signatureCanvasSeller');
-        const signaturePadSeller = new SignaturePad(canvasSeller, {
-            penColor: "rgb(0, 0, 100)",
+        , {
+            penColor: "rgb(0, 0, 150)",
             minWidth: 2,
             maxWidth: 5
-        });
+        } 
+        );
+        const canvasSeller = document.getElementById('signatureCanvasSeller');
+        const signaturePadSeller = new SignaturePad(canvasSeller, 
+        {
+            penColor: "rgb(100, 100, 100)",
+            minWidth: 2,
+            maxWidth: 5
+        }
+    );
         function resizeCanvas() {
             const ratio =  Math.max(window.devicePixelRatio || 1, 1);
             canvasMember.width = canvasMember.offsetWidth * ratio;
             canvasMember.height = canvasMember.offsetHeight * ratio;
             canvasMember.getContext("2d").scale(ratio, ratio);
-            signaturePadMember.clear(); // otherwise isEmpty() might return incorrect value
+            // signaturePadMember.clear(); // otherwise isEmpty() might return incorrect value
             canvasSeller.width = canvasSeller.offsetWidth * ratio;
             canvasSeller.height = canvasSeller.offsetHeight * ratio;
             canvasSeller.getContext("2d").scale(ratio, ratio);
-            signaturePadSeller.clear(); // otherwise isEmpty() might return incorrect value
+            // signaturePadSeller.clear(); // otherwise isEmpty() might return incorrect value
         }
         document.getElementById("clientName").placeholder = "Oppie";
         document.getElementById("sellerName").placeholder = "PenguinBar";
@@ -202,6 +249,45 @@
                 });
             });
         }
+        async function getImageTypst(file) {
+            return new Promise((resolve,err) => {
+                const reader = new FileReader(file);
+                reader.onload = (e) => {
+
+                    const dataUrl = e.target.result;
+                    const img = new Image();
+                    img.onload = () => {
+                        const w = img.width;
+                        const h = img.height;
+                        
+                        // Wrap the Base64 image data inside a scalable SVG string
+                        const svgStr = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg"><image href="${dataUrl}" width="${w}" height="${h}"/></svg>`;
+                        
+                        // Escape quotes and strip line breaks for Typst compatibility
+                        const safeSvg = svgStr.replace(/"/g, '\\"').replace(/\n/g, '');
+
+                        
+                        resolve(`#image.decode("${safeSvg}", format: "svg", width: 80%)` )
+                    }
+                    img.src = dataUrl;
+
+                }
+                reader.readAsDataURL(file);
+            });
+            
+        }
+        async function getImagesTypst() {
+            const fileInput = document.getElementById('bewijsmateriaalUpload');
+            if (!fileInput.files || fileInput.files.length === 0) return "";
+            let output = "= Bijlagen\n"; 
+            for (let i = 0;i < fileInput.files.length; i++) {
+                const file = fileInput.files[i];
+                output += `== ${i + 1}\n`;
+                output += await getImageTypst(file) + "\n";
+
+            };
+            return output;
+        } 
         function generateProduct(nr) {
             const wrapper = document.createElement("div");
             const header = document.createElement("h3");
@@ -252,14 +338,72 @@
 
             items.appendChild(generateProduct(itemnr));
         } );
+        // Source - https://stackoverflow.com/a/35599724
+        // Posted by MaVRoSCy, modified by community. See post 'Timeline' for change history
+        // Retrieved 2026-07-08, License - CC BY-SA 4.0
+
+
+        /*
+        * Returns 1 if the IBAN is valid 
+        * Returns FALSE if the IBAN's length is not as should be (for CY the IBAN Should be 28 chars long starting with CY )
+        * Returns any other number (checksum) when the IBAN is invalid (check digits do not match)
+        */
+        function isValidIBANNumber(input) {
+            var CODE_LENGTHS = {
+                AD: 24, AE: 23, AT: 20, AZ: 28, BA: 20, BE: 16, BG: 22, BH: 22, BR: 29,
+                CH: 21, CR: 21, CY: 28, CZ: 24, DE: 22, DK: 18, DO: 28, EE: 20, ES: 24,
+                FI: 18, FO: 18, FR: 27, GB: 22, GI: 23, GL: 18, GR: 27, GT: 28, HR: 21,
+                HU: 28, IE: 22, IL: 23, IS: 26, IT: 27, JO: 30, KW: 30, KZ: 20, LB: 28,
+                LI: 21, LT: 20, LU: 20, LV: 21, MC: 27, MD: 24, ME: 22, MK: 19, MR: 27,
+                MT: 31, MU: 30, NL: 18, NO: 15, PK: 24, PL: 28, PS: 29, PT: 25, QA: 29,
+                RO: 24, RS: 22, SA: 24, SE: 24, SI: 19, SK: 24, SM: 27, TN: 24, TR: 26,   
+                AL: 28, BY: 28, CR: 22, EG: 29, GE: 22, IQ: 23, LC: 32, SC: 31, ST: 25,
+                SV: 28, TL: 23, UA: 29, VA: 22, VG: 24, XK: 20
+            };
+            var iban = String(input).toUpperCase().replace(/[^A-Z0-9]/g, ''), // keep only alphanumeric characters
+                    code = iban.match(/^([A-Z]{2})(\d{2})([A-Z\d]+)$/), // match and capture (1) the country code, (2) the check digits, and (3) the rest
+                    digits;
+            // check syntax and length
+            if (!code || iban.length !== CODE_LENGTHS[code[1]]) {
+                return false;
+            }
+            // rearrange country code and check digits, and convert chars to ints
+            digits = (code[3] + code[1] + code[2]).replace(/[A-Z]/g, function (letter) {
+                return letter.charCodeAt(0) - 55;
+            });
+            // final check
+            return mod97(digits) === 1;
+        }
+
+        function mod97(string) {
+            var checksum = string.slice(0, 2), fragment;
+            for (var offset = 2; offset < string.length; offset += 7) {
+                fragment = String(checksum) + string.substring(offset, offset + 7);
+                checksum = parseInt(fragment, 10) % 97;
+            }
+            return checksum;
+        }
         // Trigger Generation
         document.getElementById('generateBtn').addEventListener('click', async () => {
             const statusDiv = document.getElementById('status');
-            
-            if (signaturePadMember.isEmpty()) {
-                statusDiv.innerText = "Please provide a signature before generating.";
-                return;
+            statusDiv.innerText = "";
+            if (!document.getElementById('clientName').value.trim()) {
+                statusDiv.innerText = "Vul je naam in.\n"
             }
+            if (!document.getElementById('sellerName').value.trim()) {
+                statusDiv.innerText = "Vul de naam van de verkoper in\n"
+            }
+            if (signaturePadMember.isEmpty()) {
+                statusDiv.innerText = "Zet in jouw handtekening in het eerste vak.\n";
+            }
+            if (signaturePadSeller.isEmpty() && document.getElementById("bewijsmateriaalUpload").files.length === 0) {
+                statusDiv.innerText = "Lever of een bonnetje aan, of zorg er voor dat de verkoper een handtekening zet.\n";
+            }
+            if (!isValidIBANNumber(document.getElementById("ibanMember").value)) {
+                statusDiv.innerText = "Geef jouw ibannummer op om op terug te laten storten.\n";
+            }
+
+            if (statusDiv.innerText) return;
 
             statusDiv.innerText = "Processing assets and generating PDF...";
 
@@ -287,14 +431,15 @@
             }
             items += ')';
 
-
+            
             // 3. Collect form data
             const clientData = {
                 name: document.getElementById('clientName').value,
                 seller: document.getElementById('sellerName').value.replace('@', '\\@'),
-                items: items
+                items: items,
+                iban: document.getElementById("ibanMember").value
             };
-
+            
             // const safeEmail = clientData.email.replace('@', '\\@');
 
             try {
@@ -333,16 +478,18 @@
                             ([Totaal],[#str(total)])
                         ), columns: (70%,20%))
                     }
-                    
+                   #set page(header: [stuur dit formulier naar #link("mailto:penningmeester\@studententheaterohvz.nl")[penningmeester\\\@studententheaterohvz.nl]])
                     // Header Grid Layout
                     #grid(
                         columns: (1fr, auto),
                         align: horizon,
-                        [= Anternatief bonnetje voor aankoop.  ${clientData.name}],
+                        [= Declaratie formulier],
                         ${logoTypstBlock}
                     )
                     
                     #v(1cm)
+                    *Lid*: ${clientData.name}\\
+                    *IBAN*: ${clientData.iban} \\
                     *Verkoper:* ${clientData.seller} \\
                     *Datum:* ${new Date().toLocaleString()}
                     
@@ -352,10 +499,13 @@
                     #v(2cm)
                     *Akkoord en getekend:*
                     #table(columns:(auto,auto),
-                        [*Lid*],[*Verkoper*],
+                        [*OhVZ*],[*Verkoper*],
                         [#image.decode("${safeSvgMember}", format: "svg", width: 50%)],
                         [#image.decode("${safeSvgSeller}", format: "svg", width: 50%)],
-                )
+                    )
+                    #pagebreak(weak:true)
+                    ${await getImagesTypst()}
+                
                 `;
 
                 const pdfBytes = await $typst.pdf({
@@ -373,10 +523,10 @@
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
 
-                statusDiv.innerText = "Done! Check your downloads folder.";
+                statusDiv.innerText = "Gelukt! De pdf wordt nu gedownload!";
             } catch (error) {
                 console.error(error);
-                statusDiv.innerText = "An error occurred. Check the browser console.";
+                statusDiv.innerText = "Whoops, technische fout. Probeer het opnieuw of verstuur alle gegevens in een mail naar de penningmeester.";
             }
         });
     </script>
