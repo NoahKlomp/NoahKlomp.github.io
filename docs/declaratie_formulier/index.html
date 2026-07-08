@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Declaratie Formulier generator</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+    
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 500px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #0070f3;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+        button:hover { background-color: #0051a8; }
+        
+        /* Signature Canvas Styles */
+        .signature-container {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: white;
+            touch-action: none; 
+        }
+        canvas {
+            width: 100%;
+            height: 150px;
+            display: block;
+        }
+        .btn-clear {
+            background-color: #e0e0e0;
+            color: #333;
+            margin-top: 8px;
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+        .btn-clear:hover { background-color: #ccc; }
+        
+        #status {
+            margin-top: 15px;
+            text-align: center;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Declaratie formulier maker</h2>
+    
+    <div class="form-group">
+        <label for="clientName">Jouw naam:</label>
+        <input type="text" id="clientName" value="Alice Smith">
+    </div>
+    
+    <div class="form-group">
+        <label for="sellerName">Verkoper/winkel</label>
+        <input type="email" id="sellerName" value="alice@example.com">
+    </div>
+    <div id="products">
+        <button type="button" id="addButton">toevoegen</button>
+        <!-- 
+        <div class="form-group">
+            <label for="desc_0">Item</label>
+            <input type="text" id="desc_0" value="Banaan">
+        </div>
+        <div class="form-group">
+            <label for="amount_0">Prijs (€)</label>
+            <input type="number" id="amount_0" value="0.0">
+        </div>
+        <hr> -->
+    </div>
+
+    <div class="form-group">
+        <label>Jouw handtekening</label>
+        <div class="signature-container">
+            <canvas id="signatureCanvasMember" width="800" height="300"></canvas>
+        </div>
+        <button type="button" class="btn-clear" id="clearBtnMember">Opnieuw</button>
+    </div>
+    <div class="form-group">
+        <label>Handtekening of paraaf verkoper</label>
+        <div class="signature-container">
+            <canvas id="signatureCanvasSeller" width="800" height="300"></canvas>
+        </div>
+        <button type="button" class="btn-clear" id="clearBtnSeller">Opnieuw</button>
+    </div>
+
+    <button id="generateBtn">Maak PDF</button>
+    <div id="status"></div>
+
+    <script type="module">
+        import { $typst } from 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@0.7.0-rc2/+esm';
+
+        // Initialize the WebAssembly engines
+        $typst.setCompilerInitOptions({
+            getModule: () => 'https://unpkg.com/@myriaddreamin/typst-ts-web-compiler@0.7.0-rc2/pkg/typst_ts_web_compiler_bg.wasm',
+        });
+        
+        $typst.setRendererInitOptions({
+            getModule: () => 'https://unpkg.com/@myriaddreamin/typst-ts-renderer@0.7.0-rc2/pkg/typst_ts_renderer_bg.wasm',
+        });
+        let itemnr = 0;
+        // Initialize the Signature Pad
+        const canvasMember = document.getElementById('signatureCanvasMember');
+        const signaturePadMember = new SignaturePad(canvasMember
+        // , {
+        //     penColor: "rgb(0, 0, 100)",
+        //     minWidth: 2,
+        //     maxWidth: 5
+        // } 
+    );
+        const canvasSeller = document.getElementById('signatureCanvasSeller');
+        const signaturePadSeller = new SignaturePad(canvasSeller, {
+            penColor: "rgb(0, 0, 100)",
+            minWidth: 2,
+            maxWidth: 5
+        });
+        function resizeCanvas() {
+            const ratio =  Math.max(window.devicePixelRatio || 1, 1);
+            canvasMember.width = canvasMember.offsetWidth * ratio;
+            canvasMember.height = canvasMember.offsetHeight * ratio;
+            canvasMember.getContext("2d").scale(ratio, ratio);
+            signaturePadMember.clear(); // otherwise isEmpty() might return incorrect value
+            canvasSeller.width = canvasSeller.offsetWidth * ratio;
+            canvasSeller.height = canvasSeller.offsetHeight * ratio;
+            canvasSeller.getContext("2d").scale(ratio, ratio);
+            signaturePadSeller.clear(); // otherwise isEmpty() might return incorrect value
+        }
+
+        // window.addEventListener("resize", resizeCanvas);
+        resizeCanvas();
+
+        // Wire up the Clear button
+        document.getElementById('clearBtnMember').addEventListener('click', () => {
+            signaturePadMember.clear();
+        });
+        document.getElementById('clearBtnSeller').addEventListener('click', () => {
+            signaturePadSeller.clear();
+        });
+
+        // Helper to convert an uploaded PNG/JPG into a Typst-safe SVG wrapper string
+        async function getLogoSvgString() {
+            // const fileInput = document.getElementById('logoUpload');
+            // if (!fileInput.files || fileInput.files.length === 0) return null;
+            
+            // const file = fileInput.files[0];
+            
+            
+            return new Promise((resolve) => {
+                fetch("./Logo_transparant.png").then(d => d.blob()).then(ab=> {
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const dataUrl = e.target.result;
+                        
+                        const img = new Image();
+                        img.onload = () => {
+                            const w = img.width;
+                            const h = img.height;
+                            
+                            // Wrap the Base64 image data inside a scalable SVG string
+                            const svgStr = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg"><image href="${dataUrl}" width="${w}" height="${h}"/></svg>`;
+                            
+                            // Escape quotes and strip line breaks for Typst compatibility
+                            const safeSvg = svgStr.replace(/"/g, '\\"').replace(/\n/g, '');
+                            resolve(safeSvg);
+                        };
+                        img.src = dataUrl;
+                    };
+                    reader.readAsDataURL(ab)
+                });
+            });
+        }
+        function generateProduct(nr) {
+            const wrapper = document.createElement("div");
+            const header = document.createElement("h3");
+            header.innerText = `Product ${nr}`;
+            wrapper.appendChild(header);
+
+            const el1 = document.createElement("div");
+            el1.classList.add("form-group");
+
+
+            const label1 = document.createElement("label");
+            label1.innerText = `Beschrijving`;
+            label1.htmlFor = `desc_${nr}`;
+            el1.appendChild(label1)
+
+            const input1 = document.createElement("input");
+            input1.type = 'text';
+            input1.placeholder = 'banaan';
+            input1.id = `desc_${nr}`;
+            el1.appendChild(input1);
+
+            wrapper.appendChild(el1);
+
+            const el2 = document.createElement("div");
+            el2.classList.add("form-group");
+
+            const label2 = document.createElement("label");
+            label2.innerText = `Prijs`;
+            label2.htmlFor = `amount_${nr}`;
+            el2.appendChild(label2)
+
+            const input2 = document.createElement("input");
+            input2.type = 'number';
+            input2.placeholder = '2.00';
+            input2.id = `amount_${nr}`;
+            el2.appendChild(input2);
+
+            wrapper.appendChild(el2);
+            wrapper.appendChild(document.createElement("hr"));
+            return wrapper;
+
+        }
+        const addb = document.getElementById("addButton");
+        addb.addEventListener('click', () => {
+            console.log('click');
+            var items = document.getElementById("products");
+            itemnr ++;
+
+            items.appendChild(generateProduct(itemnr));
+        } );
+        // Trigger Generation
+        document.getElementById('generateBtn').addEventListener('click', async () => {
+            const statusDiv = document.getElementById('status');
+            
+            if (signaturePadMember.isEmpty()) {
+                statusDiv.innerText = "Please provide a signature before generating.";
+                return;
+            }
+
+            statusDiv.innerText = "Processing assets and generating PDF...";
+
+            // 1. Process Signature
+            const svgDataUrlMember = signaturePadMember.toDataURL('image/svg+xml');
+            const rawSvgMember = atob(svgDataUrlMember.split(',')[1]);
+            const safeSvgMember = rawSvgMember.replace(/"/g, '\\"').replace(/\n/g, '');
+            
+            const svgDataUrlSeller = signaturePadSeller.toDataURL('image/svg+xml');
+            const rawSvgSeller = atob(svgDataUrlSeller.split(',')[1]);
+            const safeSvgSeller = rawSvgSeller.replace(/"/g, '\\"').replace(/\n/g, '');
+
+            // 2. Process Logo
+            const safeLogoSvg = await getLogoSvgString();
+            // Code Mode block: notice "image.decode" does NOT have a "#" prefix here
+            const logoTypstBlock = safeLogoSvg 
+                ? `image.decode("${safeLogoSvg}", format: "svg", width: 3cm)` 
+                : `[]`;
+            let items = '(';
+            for (let i = 1; i<=itemnr;i++) {
+                const desc = document.getElementById(`desc_${i}`).value;
+                const price = document.getElementById(`amount_${i}`).value;
+                    
+                items += `([${desc}],${price}),`;
+            }
+            items += ')';
+
+
+            // 3. Collect form data
+            const clientData = {
+                name: document.getElementById('clientName').value,
+                seller: document.getElementById('sellerName').value.replace('@', '\\@'),
+                items: items
+            };
+
+            // const safeEmail = clientData.email.replace('@', '\\@');
+
+            try {
+                // 4. Construct Typst markup
+                const typstSource = `
+                    #set page(paper: "a4", margin: 2.5cm)
+                    #set text(size: 11pt) 
+                    #let makeTable(data, columns: none) = {
+                        let col-count = if columns == none { data.at(0).len() } else { columns }
+                        let header-row = data.at(0)
+                        let body-rows = data.slice(1)
+                        
+                        table(
+                            columns: col-count,
+                            fill: (col, row) => if row == 0 { rgb("e0e0e0") } else { none },
+                            stroke: 0.5pt,
+
+                            
+                            // Style the header cells boldly
+                            ..header-row.map(cell => align(center,[*#cell*])),
+                            // Pass the rest of the body cells as-is
+                            ..body-rows.flatten()
+                        )
+                    }
+
+                    #let kwitatie(stuff:(([...],[...],0.00),)) = {
+                        // stuff
+                        let total = 0
+                        for i in stuff.map(a => a.at(1)) {
+                            total += i
+                        }
+                        stuff = stuff.map(((a,b)) => (a,align(right,[#b])))
+                        makeTable((
+                            ([Beschrijving],[Prijs]),
+                            ..stuff, 
+                            ([Totaal],[#str(total)])
+                        ), columns: (70%,20%))
+                    }
+                    
+                    // Header Grid Layout
+                    #grid(
+                        columns: (1fr, auto),
+                        align: horizon,
+                        [= Anternatief bonnetje voor aankoop.  ${clientData.name}],
+                        ${logoTypstBlock}
+                    )
+                    
+                    #v(1cm)
+                    *Verkoper:* ${clientData.seller} \\
+                    *Datum:* ${new Date().toLocaleString()}
+                    
+                    #v(0.5cm)
+                    #kwitatie(stuff:${items})
+                    
+                    #v(2cm)
+                    *Akkoord en getekend:*
+                    #table(columns:(auto,auto),
+                        [*Lid*],[*Verkoper*],
+                        [#image.decode("${safeSvgMember}", format: "svg", width: 50%)],
+                        [#image.decode("${safeSvgSeller}", format: "svg", width: 50%)],
+                )
+                `;
+
+                const pdfBytes = await $typst.pdf({
+                    mainContent: typstSource,
+                });
+                
+
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `DeclaratieOverzicht_${clientData.name}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                statusDiv.innerText = "Done! Check your downloads folder.";
+            } catch (error) {
+                console.error(error);
+                statusDiv.innerText = "An error occurred. Check the browser console.";
+            }
+        });
+    </script>
+</body>
+</html>
