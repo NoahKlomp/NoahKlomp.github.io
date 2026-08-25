@@ -1,0 +1,408 @@
+import { $typst } from 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@0.7.0-rc2/+esm';
+
+        // Initialize the WebAssembly engines
+        $typst.setCompilerInitOptions({
+            getModule: () => 'https://unpkg.com/@myriaddreamin/typst-ts-web-compiler@0.7.0-rc2/pkg/typst_ts_web_compiler_bg.wasm',
+        });
+        
+        $typst.setRendererInitOptions({
+            getModule: () => 'https://unpkg.com/@myriaddreamin/typst-ts-renderer@0.7.0-rc2/pkg/typst_ts_renderer_bg.wasm',
+        });
+        let itemnr = 0;
+        // Initialize the Signature Pad
+        const canvasMember = document.getElementById('signatureCanvasMember');
+        const signaturePadMember = new SignaturePad(canvasMember
+        , {
+            penColor: "rgb(0, 0, 150)",
+            minWidth: 2,
+            maxWidth: 5
+        } 
+        );
+        const canvasSeller = document.getElementById('signatureCanvasSeller');
+        const signaturePadSeller = new SignaturePad(canvasSeller, 
+        {
+            penColor: "rgb(100, 100, 100)",
+            minWidth: 2,
+            maxWidth: 5
+        }
+    );
+        function resizeCanvas() {
+            const ratio =  Math.max(window.devicePixelRatio || 1, 1);
+            canvasMember.width = canvasMember.offsetWidth * ratio;
+            canvasMember.height = canvasMember.offsetHeight * ratio;
+            canvasMember.getContext("2d").scale(ratio, ratio);
+            // signaturePadMember.clear(); // otherwise isEmpty() might return incorrect value
+            canvasSeller.width = canvasSeller.offsetWidth * ratio;
+            canvasSeller.height = canvasSeller.offsetHeight * ratio;
+            canvasSeller.getContext("2d").scale(ratio, ratio);
+            // signaturePadSeller.clear(); // otherwise isEmpty() might return incorrect value
+        }
+        function rndChoice(ls) {
+            return ls[Math.floor(Math.random()*ls.length)]
+        }
+        let combi = rndChoice([
+            ["Oppie"
+            ,"0612345678"
+            ,"Oppie@studententheaterohvz.nl"
+            ,"PenguinBar"
+            ]
+        ]);
+        document.getElementById("clientName").placeholder   = combi[0];
+        document.getElementById("clientPhone").placeholder  = combi[1];
+        document.getElementById("clientEmail").placeholder  = combi[2];
+        document.getElementById("sellerName").placeholder   = combi[3];
+
+
+
+        // window.addEventListener("resize", resizeCanvas);
+        resizeCanvas();
+
+        // Wire up the Clear button
+        document.getElementById('clearBtnMember').addEventListener('click', () => {
+            signaturePadMember.clear();
+        });
+        document.getElementById('clearBtnSeller').addEventListener('click', () => {
+            signaturePadSeller.clear();
+        });
+
+        // Helper to convert an uploaded PNG/JPG into a Typst-safe SVG wrapper string
+        async function getLogoSvgString() {
+            // const fileInput = document.getElementById('logoUpload');
+            // if (!fileInput.files || fileInput.files.length === 0) return null;
+            
+            // const file = fileInput.files[0];
+            
+            
+            return new Promise((resolve) => {
+                fetch("./Logo_transparant.png").then(d => d.blob()).then(ab=> {
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const dataUrl = e.target.result;
+                        
+                        const img = new Image();
+                        img.onload = () => {
+                            const w = img.width;
+                            const h = img.height;
+                            
+                            // Wrap the Base64 image data inside a scalable SVG string
+                            const svgStr = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg"><image href="${dataUrl}" width="${w}" height="${h}"/></svg>`;
+                            
+                            // Escape quotes and strip line breaks for Typst compatibility
+                            const safeSvg = svgStr.replace(/"/g, '\\"').replace(/\n/g, '');
+                            resolve(safeSvg);
+                        };
+                        img.src = dataUrl;
+                    };
+                    reader.readAsDataURL(ab)
+                });
+            });
+        }
+        async function getImageTypst(file) {
+            return new Promise((resolve,err) => {
+                const reader = new FileReader(file);
+                reader.onload = (e) => {
+
+                    const dataUrl = e.target.result;
+                    const img = new Image();
+                    img.onload = () => {
+                        const w = img.width;
+                        const h = img.height;
+                        
+                        // Wrap the Base64 image data inside a scalable SVG string
+                        const svgStr = `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg"><image href="${dataUrl}" width="${w}" height="${h}"/></svg>`;
+                        
+                        // Escape quotes and strip line breaks for Typst compatibility
+                        const safeSvg = svgStr.replace(/"/g, '\\"').replace(/\n/g, '');
+
+                        
+                        resolve(`#image.decode("${safeSvg}", format: "svg", width: 80%)` )
+                    }
+                    img.src = dataUrl;
+
+                }
+                reader.readAsDataURL(file);
+            });
+            
+        }
+        async function getImagesTypst() {
+            const fileInput = document.getElementById('bewijsmateriaalUpload');
+            if (!fileInput.files || fileInput.files.length === 0) return "";
+            let output = "= Bijlagen\n"; 
+            for (let i = 0;i < fileInput.files.length; i++) {
+                const file = fileInput.files[i];
+                output += `== ${i + 1}\n`;
+                output += await getImageTypst(file) + "\n";
+
+            };
+            return output;
+        } 
+        function generateProduct(nr) {
+            const wrapper = document.createElement("fieldset");
+            const header = document.createElement("legend");
+            header.innerText = `Product ${nr}`;
+            wrapper.appendChild(header);
+
+            const el1 = document.createElement("div");
+            el1.classList.add("form-group");
+
+
+            const label1 = document.createElement("label");
+            label1.innerText = `Beschrijving`;
+            label1.htmlFor = `desc_${nr}`;
+            el1.appendChild(label1)
+
+            const input1 = document.createElement("input");
+            input1.type = 'text';
+            input1.placeholder = 'banaan';
+            input1.id = `desc_${nr}`;
+            el1.appendChild(input1);
+
+            wrapper.appendChild(el1);
+
+            const el2 = document.createElement("div");
+            el2.classList.add("form-group");
+
+            const label2 = document.createElement("legend");
+            label2.innerText = `Prijs`;
+            label2.htmlFor = `amount_${nr}`;
+            el2.appendChild(label2)
+
+            const input2 = document.createElement("input");
+            input2.type = 'number';
+            input2.placeholder = '2.00';
+            input2.id = `amount_${nr}`;
+            el2.appendChild(input2);
+
+            wrapper.appendChild(el2);
+            // wrapper.appendChild(document.createElement("hr"));
+            return wrapper;
+
+        }
+        const addb = document.getElementById("addButton");
+        addb.addEventListener('click', () => {
+            console.log('click');
+            var items = document.getElementById("products");
+            itemnr ++;
+
+            items.appendChild(generateProduct(itemnr));
+        } );
+        // Source - https://stackoverflow.com/a/35599724
+        // Posted by MaVRoSCy, modified by community. See post 'Timeline' for change history
+        // Retrieved 2026-07-08, License - CC BY-SA 4.0
+
+
+        /*
+        * Returns 1 if the IBAN is valid 
+        * Returns FALSE if the IBAN's length is not as should be (for CY the IBAN Should be 28 chars long starting with CY )
+        * Returns any other number (checksum) when the IBAN is invalid (check digits do not match)
+        */
+        function isValidIBANNumber(input) {
+            var CODE_LENGTHS = {
+                AD: 24, AE: 23, AT: 20, AZ: 28, BA: 20, BE: 16, BG: 22, BH: 22, BR: 29,
+                CH: 21, CR: 21, CY: 28, CZ: 24, DE: 22, DK: 18, DO: 28, EE: 20, ES: 24,
+                FI: 18, FO: 18, FR: 27, GB: 22, GI: 23, GL: 18, GR: 27, GT: 28, HR: 21,
+                HU: 28, IE: 22, IL: 23, IS: 26, IT: 27, JO: 30, KW: 30, KZ: 20, LB: 28,
+                LI: 21, LT: 20, LU: 20, LV: 21, MC: 27, MD: 24, ME: 22, MK: 19, MR: 27,
+                MT: 31, MU: 30, NL: 18, NO: 15, PK: 24, PL: 28, PS: 29, PT: 25, QA: 29,
+                RO: 24, RS: 22, SA: 24, SE: 24, SI: 19, SK: 24, SM: 27, TN: 24, TR: 26,   
+                AL: 28, BY: 28, CR: 22, EG: 29, GE: 22, IQ: 23, LC: 32, SC: 31, ST: 25,
+                SV: 28, TL: 23, UA: 29, VA: 22, VG: 24, XK: 20
+            };
+            var iban = String(input).toUpperCase().replace(/[^A-Z0-9]/g, ''), // keep only alphanumeric characters
+                    code = iban.match(/^([A-Z]{2})(\d{2})([A-Z\d]+)$/), // match and capture (1) the country code, (2) the check digits, and (3) the rest
+                    digits;
+            // check syntax and length
+            if (!code || iban.length !== CODE_LENGTHS[code[1]]) {
+                return false;
+            }
+            // rearrange country code and check digits, and convert chars to ints
+            digits = (code[3] + code[1] + code[2]).replace(/[A-Z]/g, function (letter) {
+                return letter.charCodeAt(0) - 55;
+            });
+            // final check
+            return mod97(digits) === 1;
+        }
+        function validemail(email) {
+            const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return pattern.test(email);
+        }
+        function mod97(string) {
+            var checksum = string.slice(0, 2), fragment;
+            for (var offset = 2; offset < string.length; offset += 7) {
+                fragment = String(checksum) + string.substring(offset, offset + 7);
+                checksum = parseInt(fragment, 10) % 97;
+            }
+            return checksum;
+        }
+        // Trigger Generation
+        document.getElementById('generateBtn').addEventListener('click', async () => {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerText = "";
+            if (!document.getElementById('clientName').value.trim()) {
+                statusDiv.innerText += "Vul je naam in.\n"
+            }
+            if (!document.getElementById('sellerName').value.trim()) {
+                statusDiv.innerText += "Vul de naam van de verkoper in\n"
+            }
+            if (signaturePadMember.isEmpty()) {
+                statusDiv.innerText += "Zet in jouw handtekening in het eerste vak.\n";
+            }
+            if (signaturePadSeller.isEmpty() && document.getElementById("bewijsmateriaalUpload").files.length === 0) {
+                statusDiv.innerText += "Lever of een bonnetje aan, of zorg er voor dat de verkoper een handtekening zet.\n";
+            }
+            // if (!isValidIBANNumber(document.getElementById("ibanMember").value)) {
+            //     statusDiv.innerText += "Geef jouw ibannummer op om op terug te laten storten.\n";
+            // }
+            if (!document.getElementById('rekeninghouder').value.trim()) {
+                statusDiv.innerText += "Vul de rekeninghoudersnaam in.\n"
+            }
+            if (!document.getElementById('clientPhone').value.trim()) {
+                statusDiv.innerText += "Vul jouw telefoonnummer in.\n"
+            }
+            if (!validemail(document.getElementById('clientEmail').value.trim())) {
+                statusDiv.innerText += "Vul een geldig E-mailadress in.\n"
+            }
+            if (!document.getElementById("agreed").checked) {
+                statusDiv.innerText += "Vul dit formulier alsjeblieft naar waarheid in.\n"
+            }
+            if (statusDiv.innerText) return;
+
+            statusDiv.innerText = "PDF aan het maken...";
+
+            // 1. Process Signature
+            const svgDataUrlMember = signaturePadMember.toDataURL('image/svg+xml');
+            const rawSvgMember = atob(svgDataUrlMember.split(',')[1]);
+            const safeSvgMember = rawSvgMember.replace(/"/g, '\\"').replace(/\n/g, '');
+            
+            const svgDataUrlSeller = signaturePadSeller.toDataURL('image/svg+xml');
+            const rawSvgSeller = atob(svgDataUrlSeller.split(',')[1]);
+            const safeSvgSeller = rawSvgSeller.replace(/"/g, '\\"').replace(/\n/g, '');
+
+            // 2. Process Logo
+            const safeLogoSvg = await getLogoSvgString();
+            // Code Mode block: notice "image.decode" does NOT have a "#" prefix here
+            const logoTypstBlock = safeLogoSvg 
+                ? `image.decode("${safeLogoSvg}", format: "svg", width: 3cm)` 
+                : `[]`;
+            let items = "";
+            if (itemnr !== 0){ 
+                items = '#kwitatie(stuff:(';
+                for (let i = 1; i<=itemnr;i++) {
+                    const desc = document.getElementById(`desc_${i}`).value;
+                    const price = document.getElementById(`amount_${i}`).value;
+                        
+                    items += `([${desc}],${price}),`;
+                }
+                items += '))';
+            }
+
+            
+            // 3. Collect form data
+            const clientData = {
+                name: document.getElementById('clientName').value.trim().replace('#',"\\#").replace("@","\\@"),
+                seller: document.getElementById('sellerName').value.trim().replace('#',"\\#").replace("@","\\@"),
+                items: items,
+                iban: document.getElementById("ibanMember").value.trim().replace('#',"\\#").replace("@","\\@"),
+                rekeninghouder: document.getElementById("rekeninghouder").value.trim().replace('#',"\\#").replace("@","\\@"),
+                tel: document.getElementById("clientPhone").value.trim().replace('#',"\\#").replace("@","\\@"),
+                email: document.getElementById("clientEmail").value.trim().replace('#',"\\#").replace("@","\\@"),
+                comments:document.getElementById("commentsArea").value.trim()? 
+                        `== Extra opmerkingen
+                        #box(stroke:1pt,inset:5pt,width:100%)[${document.getElementById("commentsArea").value.trim().replace('#',"\\#").replace("@","\\@")}]` : ""
+            };''
+            
+            // const safeEmail = clientData.email.replace('@', '\\@');
+
+            try {
+                // 4. Construct Typst markup
+                const typstSource = `
+                    #set page(paper: "a4", margin: 2.5cm)
+                    #set text(size: 11pt) 
+                    #let makeTable(data, columns: none) = {
+                        let col-count = if columns == none { data.at(0).len() } else { columns }
+                        let header-row = data.at(0)
+                        let body-rows = data.slice(1)
+                        
+                        table(
+                            columns: col-count,
+                            fill: (col, row) => if row == 0 { rgb("e0e0e0") } else { none },
+                            stroke: 0.5pt,
+
+                            
+                            // Style the header cells boldly
+                            ..header-row.map(cell => align(center,[*#cell*])),
+                            // Pass the rest of the body cells as-is
+                            ..body-rows.flatten()
+                        )
+                    }
+
+                    #let kwitatie(stuff:(([...],[...],0.00),)) = {
+                        // stuff
+                        let total = 0
+                        for i in stuff.map(a => a.at(1)) {
+                            total += i
+                        }
+                        stuff = stuff.map(((a,b)) => (a,align(right,[#b])))
+                        makeTable((
+                            ([Beschrijving],[Prijs]),
+                            ..stuff, 
+                            ([Totaal],[#str(total)])
+                        ), columns: (70%,20%))
+                    }
+                   #set page(header: [Stuur dit formulier naar #link("mailto:penningmeester\@studententheaterohvz.nl")[penningmeester\\\@studententheaterohvz.nl]],
+                             footer:[aangemaakt op tijdstip: ${new Date().toLocaleString("nl")}])
+                    // Header Grid Layout
+                    #grid(
+                        columns: (1fr, auto),
+                        align: horizon,
+                        [= Declaratie formulier],
+                        ${logoTypstBlock}
+                    )
+                    
+                    #v(1cm)
+                    #table(columns:(auto,auto),
+                    [*Lid*], [${clientData.name}],
+                    [*Telefoonnummer*], [${clientData.tel}],
+                    [*Email*], [${clientData.email}],
+                    [*IBAN*], [${clientData.iban}] ,
+                    [*Op naam van*], [${clientData.rekeninghouder}],
+                    [*Verkoper*], [${clientData.seller}] ,
+                    )
+                    
+                    #v(0.5cm)
+                    ${items}
+                    ${clientData.comments}
+                    #v(2cm)
+                    *Akkoord en getekend:*
+                    #table(columns:(50%,50%),
+                        [*OhVZ*],[*Verkoper*],
+                        [#image.decode("${safeSvgMember}", format: "svg", width: 100%)],
+                        [#image.decode("${safeSvgSeller}", format: "svg", width: 100%)],
+                    )
+                    #pagebreak(weak:true)
+                    ${await getImagesTypst()}
+                
+                `;
+
+                const pdfBytes = await $typst.pdf({
+                    mainContent: typstSource,
+                });
+                
+
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `DeclaratieOverzicht_${clientData.name}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                statusDiv.innerText = "Gelukt! De pdf wordt nu gedownload!";
+            } catch (error) {
+                console.error(error);
+                statusDiv.innerText = "Whoops, technische fout. Probeer het opnieuw of verstuur alle gegevens in een mail naar de penningmeester.";
+            }
+        });
