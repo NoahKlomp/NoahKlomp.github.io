@@ -121,7 +121,7 @@ import { $typst } from 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@0.7
                         const safeSvg = svgStr.replace(/"/g, '\\"').replace(/\n/g, '');
 
                         
-                        resolve(`#image.decode("${safeSvg}", format: "svg", width: 80%)` )
+                        resolve(`#image.decode("${safeSvg}", format: "svg", width: 80%, fit:"contain")` )
                     }
                     img.src = dataUrl;
 
@@ -257,7 +257,7 @@ import { $typst } from 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@0.7
                 statusDiv.innerText += "Lever of een bonnetje aan, of zorg er voor dat de verkoper een handtekening zet.\n";
             }
             if (!isValidIBANNumber(document.getElementById("ibanMember").value)) {
-                statusDiv.innerText += "Geef jouw ibannummer op om op terug te laten storten.\n";
+                statusDiv.innerText += "Geef een kloppend ibannummer op om op terug te laten storten.\n";
             }
             if (!document.getElementById('rekeninghouder').value.trim()) {
                 statusDiv.innerText += "Vul de rekeninghoudersnaam in.\n"
@@ -335,7 +335,7 @@ import { $typst } from 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@0.7
                     #set page(paper: "a4", margin: (
                         top:2.5cm,
                         left:2.5cm,
-                        bottom:5cm,
+                        bottom:7.5cm,
                         right:2.5cm
                         ))
                     #set text(size: 11pt) 
@@ -422,6 +422,6 @@ import { $typst } from 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@0.7
                 statusDiv.innerText = "Gelukt! De pdf wordt nu gedownload!";
             } catch (error) {
                 console.error(error);
-                statusDiv.innerText = "Whoops, technische fout. Probeer het opnieuw of verstuur alle gegevens in een mail naar de penningmeester.";
+                statusDiv.innerText = "Whoops, technische fout. Probeer het opnieuw of verstuur alle gegevens in een mail naar de penningmeester doormiddel van een screenshot en de bijgevoegde bewijsmaterialen. ";
             }
         });
