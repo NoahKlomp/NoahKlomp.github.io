@@ -332,7 +332,12 @@ import { $typst } from 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@0.7
             try {
                 // 4. Construct Typst markup
                 const typstSource = `
-                    #set page(paper: "a4", margin: 2.5cm)
+                    #set page(paper: "a4", margin: (
+                        top:2.5cm,
+                        left:2.5cm,
+                        bottom:5cm,
+                        right:2.5cm
+                        ))
                     #set text(size: 11pt) 
                     #let makeTable(data, columns: none) = {
                         let col-count = if columns == none { data.at(0).len() } else { columns }
@@ -354,7 +359,7 @@ import { $typst } from 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@0.7
 
                     #let kwitatie(stuff:(([...],[...],0.00),)) = {
                         // stuff
-                        let total = 0
+                        let total = 0.0
                         for i in stuff.map(a => a.at(1)) {
                             total += i
                         }
