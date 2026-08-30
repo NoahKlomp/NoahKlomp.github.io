@@ -45,6 +45,11 @@ import { $typst } from 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@0.7
             ,"0612345678"
             ,"Oppie@studententheaterohvz.nl"
             ,"PenguinBar"
+            ],
+            ["Oppie"
+            ,"0612345678"
+            ,"Oppie@studententheaterohvz.nl"
+            ,"PenguinBar"
             ]
         ]);
         document.getElementById("clientName").placeholder   = combi[0];
@@ -251,9 +256,9 @@ import { $typst } from 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@0.7
             if (signaturePadSeller.isEmpty() && document.getElementById("bewijsmateriaalUpload").files.length === 0) {
                 statusDiv.innerText += "Lever of een bonnetje aan, of zorg er voor dat de verkoper een handtekening zet.\n";
             }
-            // if (!isValidIBANNumber(document.getElementById("ibanMember").value)) {
-            //     statusDiv.innerText += "Geef jouw ibannummer op om op terug te laten storten.\n";
-            // }
+            if (!isValidIBANNumber(document.getElementById("ibanMember").value)) {
+                statusDiv.innerText += "Geef jouw ibannummer op om op terug te laten storten.\n";
+            }
             if (!document.getElementById('rekeninghouder').value.trim()) {
                 statusDiv.innerText += "Vul de rekeninghoudersnaam in.\n"
             }
