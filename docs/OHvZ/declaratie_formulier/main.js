@@ -370,7 +370,10 @@ import { $typst } from 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@0.7
                             ([Totaal],align(right,[#str(total)]))
                         ), columns: (70%,20%))
                     }
-                   #set page(header: [Stuur dit formulier naar #link("mailto:penningmeester\@studententheaterohvz.nl")[penningmeester\\\@studententheaterohvz.nl]],
+                   #set page(header: [
+                        Stuur dit formulier naar #link("mailto:penningmeester\@studententheaterohvz.nl")[penningmeester\\\@studententheaterohvz.nl]. 
+                        De penningmeester zal zo snel mogelijk door middel van een reactie op de mail laten weten of de declaratie is goed gekeurd. 
+                        ],
                              footer:[
                              ${clientData.signatureTable}
                              
