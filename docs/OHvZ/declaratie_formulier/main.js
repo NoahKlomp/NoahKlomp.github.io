@@ -301,11 +301,11 @@ import { $typst } from 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@0.7
                 }
                 items += '))';
             }
-
+            let tempMemberName =  document.getElementById('clientName').value.trim().replace('#',"\\#").replace("@","\\@");
             
             // 3. Collect form data
             const clientData = {
-                name: document.getElementById('clientName').value.trim().replace('#',"\\#").replace("@","\\@"),
+                name: tempMemberName,
                 seller: document.getElementById('sellerName').value.trim().replace('#',"\\#").replace("@","\\@"),
                 items: items,
                 iban: document.getElementById("ibanMember").value.trim().replace('#',"\\#").replace("@","\\@"),
@@ -314,8 +314,18 @@ import { $typst } from 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@0.7
                 email: document.getElementById("clientEmail").value.trim().replace('#',"\\#").replace("@","\\@"),
                 comments:document.getElementById("commentsArea").value.trim()? 
                         `== Extra opmerkingen
-                        #box(stroke:1pt,inset:5pt,width:100%)[${document.getElementById("commentsArea").value.trim().replace('#',"\\#").replace("@","\\@")}]` : ""
-            };''
+                        #box(stroke:1pt,inset:5pt,width:100%)[${document.getElementById("commentsArea").value.trim().replace('#',"\\#").replace("@","\\@")}]` : "",
+                signatureTable: signaturePadSeller.isEmpty()?`*Akkoord en getekend:*
+                    #table(columns:(50%,),
+                        [*${tempMemberName}*],
+                        [#image.decode("${safeSvgMember}", format: "svg", width: 50%)],
+                        )` :`*Akkoord en getekend:*
+                    #table(columns:(50%,50%),
+                        [*${tempMemberName}*],[*Verkoper*],
+                        [#image.decode("${safeSvgMember}", format: "svg", width: 100%)],
+                        [#image.decode("${safeSvgSeller}", format: "svg", width: 100%)],
+                    )`
+            };
             
             // const safeEmail = clientData.email.replace('@', '\\@');
 
@@ -352,11 +362,15 @@ import { $typst } from 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@0.7
                         makeTable((
                             ([Beschrijving],[Prijs]),
                             ..stuff, 
-                            ([Totaal],[#str(total)])
+                            ([Totaal],align(right,[#str(total)]))
                         ), columns: (70%,20%))
                     }
                    #set page(header: [Stuur dit formulier naar #link("mailto:penningmeester\@studententheaterohvz.nl")[penningmeester\\\@studententheaterohvz.nl]],
-                             footer:[aangemaakt op tijdstip: ${new Date().toLocaleString("nl")}])
+                             footer:[
+                             ${clientData.signatureTable}
+                             
+                             aangemaakt op tijdstip: ${new Date().toLocaleString("nl")}
+                             ])
                     // Header Grid Layout
                     #grid(
                         columns: (1fr, auto),
@@ -379,12 +393,7 @@ import { $typst } from 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@0.7
                     ${items}
                     ${clientData.comments}
                     #v(2cm)
-                    *Akkoord en getekend:*
-                    #table(columns:(50%,50%),
-                        [*OhVZ*],[*Verkoper*],
-                        [#image.decode("${safeSvgMember}", format: "svg", width: 100%)],
-                        [#image.decode("${safeSvgSeller}", format: "svg", width: 100%)],
-                    )
+                    
                     #pagebreak(weak:true)
                     ${await getImagesTypst()}
                 
