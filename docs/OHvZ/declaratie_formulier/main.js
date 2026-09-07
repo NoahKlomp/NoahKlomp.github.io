@@ -52,10 +52,10 @@ import { $typst } from 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@0.7
             ,"PenguinBar"
             ]
         ]);
-        document.getElementById("clientName").placeholder   = combi[0];
-        document.getElementById("clientPhone").placeholder  = combi[1];
-        document.getElementById("clientEmail").placeholder  = combi[2];
-        document.getElementById("sellerName").placeholder   = combi[3];
+        document.getElementById("clientName").placeholder   = "bv. " + combi[0];
+        document.getElementById("clientPhone").placeholder  = "bv. " + combi[1];
+        document.getElementById("clientEmail").placeholder  = "bv. " + combi[2];
+        document.getElementById("sellerName").placeholder   = "bv. " + combi[3];
 
 
 
