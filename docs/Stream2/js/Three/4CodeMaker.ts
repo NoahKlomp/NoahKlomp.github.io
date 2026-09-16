@@ -63,7 +63,7 @@ class JavaCodeMaker extends CodeMaker {
             const ind = CodeMaker.indent(indent) 
             switch (val.type) {
                 case CodeType.STATEMENT:
-                    return `${CodeMaker.indent(indent)}// ${val.text.replace("\n","\n"+CodeMaker.indent(indent)+"# ")}`;
+                    return `${CodeMaker.indent(indent)}// ${val.text.replace("\n","\n"+CodeMaker.indent(indent)+"// ")}`;
                 case CodeType.IF:
                     const trueCode = val.content["True"] || [Creator.getExport("STATEMENT")];
                     const falseCode = val.content["False"] || [Creator.getExport("STATEMENT")];
@@ -92,6 +92,43 @@ class JavaCodeMaker extends CodeMaker {
                             `}`;
                 default:
                     return "// "+Words.get("Unknown code");
+            }
+        }).join("\n");
+    }
+}
+class PseudoCodeMaker extends CodeMaker {
+
+    protected toCodeRecursive(codeExport: Export[], indent = 0): codeString {
+        return codeExport.map((val:Export)=> {
+            const ind = CodeMaker.indent(indent) 
+            switch (val.type) {
+                case CodeType.STATEMENT:
+                    return `${CodeMaker.indent(indent)}${val.text.replace("\n","\n"+CodeMaker.indent(indent))}`;
+                case CodeType.IF:
+                    const trueCode = val.content["True"] || [Creator.getExport("STATEMENT")];
+                    const falseCode = val.content["False"] || [Creator.getExport("STATEMENT")];
+                    return `${ind}ALS '${val.text.replace("\n"," ")}' DOE \n`+
+                                `${this.toCodeRecursive(trueCode, indent+1)}\n`+
+                            `${ind}`+
+                            ((falseCode.length == 0)? "":(falseCode.length == 1 && falseCode[0].type == CodeType.IF)?
+                            `ANDERS ${this.toCodeRecursive(falseCode, indent).trimStart()}`:
+                            `ANDERS \n`+
+                                `${this.toCodeRecursive(falseCode, indent+1)}`);
+                case CodeType.DO_WHILE:
+                    const dowhilecode = val.content["Looped"] || [Creator.getExport("STATEMENT")];
+                    return `${ind}DOE \n`+
+                                `${this.toCodeRecursive(dowhilecode, indent+1)}\n`+
+                            `${ind} ZOLANG ${val.text.replace("\n"," ")}`;
+                case CodeType.FOR:
+                    const forcode = val.content["Looped"] || [Creator.getExport("STATEMENT")];
+                    return `${ind}VOOR ${val.text.replace("\n"," ")} DOE \n`+
+                                `${this.toCodeRecursive(forcode, indent+1)}`;
+                case CodeType.WHILE:
+                    const whilecode = val.content["Looped"] || [Creator.getExport("STATEMENT")];
+                    return `${ind}ZOLANG ${val.text.replace("\n"," ")} DOE\n`+
+                                `${this.toCodeRecursive(whilecode, indent+1)}`;
+                default:
+                    return Words.get("Unknown code");
             }
         }).join("\n");
     }

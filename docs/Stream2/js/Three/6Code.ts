@@ -1211,15 +1211,15 @@ class StartNode {
     }
 
     get width(): number {
-        return getTextDimentions(this._textElement.textContent).width + 2 * CONFIG.TEXT_MARGIN;
+        return getTextDimentions(this._textElement.textContent||"").width + 2 * CONFIG.TEXT_MARGIN;
     }
 
     get height(): number {
-        return getTextDimentions(this._textElement.textContent).height + 2 * CONFIG.TEXT_MARGIN;
+        return getTextDimentions(this._textElement.textContent||"").height + 2 * CONFIG.TEXT_MARGIN;
     }
 
     update() {
-        const textsizes = getTextDimentions(this._textElement.textContent);
+        const textsizes = getTextDimentions(this._textElement.textContent||"");
         const width = textsizes.width + 2 * CONFIG.TEXT_MARGIN;
         const height = textsizes.height + 2 * CONFIG.TEXT_MARGIN;
         this._element.setAttribute("width", `${width}`);
@@ -1295,15 +1295,15 @@ class EndNode {
     }
 
     get width(): number {
-        return getTextDimentions(this._textElement.textContent).width + 2 * CONFIG.TEXT_MARGIN;
+        return getTextDimentions(this._textElement.textContent||"").width + 2 * CONFIG.TEXT_MARGIN;
     }
 
     get height(): number {
-        return getTextDimentions(this._textElement.textContent).height + CONFIG.TEXT_MARGIN;
+        return getTextDimentions(this._textElement.textContent||"").height + CONFIG.TEXT_MARGIN;
     }
 
     update() {
-        const textsizes = getTextDimentions(this._textElement.textContent);
+        const textsizes = getTextDimentions(this._textElement.textContent||"");
         const width = textsizes.width + 2 * CONFIG.TEXT_MARGIN;
         const height = textsizes.height + 2 * CONFIG.TEXT_MARGIN;
         this._element.setAttribute("width", `${width}`);
