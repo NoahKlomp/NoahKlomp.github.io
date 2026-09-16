@@ -363,11 +363,11 @@ import { $typst } from 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@0.7
                         for i in stuff.map(a => a.at(1)) {
                             total += i
                         }
-                        stuff = stuff.map(((a,b)) => (a,align(right,[#b])))
+                        stuff = stuff.map(((a,b)) => (a,align(right,[€ #b])))
                         makeTable((
                             ([Beschrijving],[Prijs]),
                             ..stuff, 
-                            ([Totaal],align(right,[#str(total)]))
+                            ([Totaal],align(right,[€ #str(total)]))
                         ), columns: (70%,20%))
                     }
                    #set page(header: [
