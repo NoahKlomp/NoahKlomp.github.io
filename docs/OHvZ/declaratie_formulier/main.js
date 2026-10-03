@@ -321,7 +321,7 @@ import { $typst } from 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@0.7
                         [#image.decode("${safeSvgMember}", format: "svg", width: 50%)],
                         )` :`*Akkoord en getekend:*
                     #table(columns:(50%,50%),
-                        [*${tempSellerName}*],
+                        [*${tempMemberName}*],[*${tempSellerName}*],
                         [#image.decode("${safeSvgMember}", format: "svg", width: 100%)],
                         [#image.decode("${safeSvgSeller}", format: "svg", width: 100%)],
                     )`
