@@ -302,11 +302,11 @@ import { $typst } from 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@0.7
                 items += '))';
             }
             let tempMemberName =  document.getElementById('clientName').value.trim().replace('#',"\\#").replace("@","\\@");
-            
+            let tempSellerName = document.getElementById('sellerName').value.trim().replace('#',"\\#").replace("@","\\@")
             // 3. Collect form data
             const clientData = {
                 name: tempMemberName,
-                seller: document.getElementById('sellerName').value.trim().replace('#',"\\#").replace("@","\\@"),
+                seller: tempSellerName,
                 items: items,
                 iban: document.getElementById("ibanMember").value.trim().replace('#',"\\#").replace("@","\\@"),
                 rekeninghouder: document.getElementById("rekeninghouder").value.trim().replace('#',"\\#").replace("@","\\@"),
@@ -321,7 +321,7 @@ import { $typst } from 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@0.7
                         [#image.decode("${safeSvgMember}", format: "svg", width: 50%)],
                         )` :`*Akkoord en getekend:*
                     #table(columns:(50%,50%),
-                        [*${tempMemberName}*],[*Verkoper*],
+                        [*${tempSellerName}*],
                         [#image.decode("${safeSvgMember}", format: "svg", width: 100%)],
                         [#image.decode("${safeSvgSeller}", format: "svg", width: 100%)],
                     )`
@@ -383,7 +383,7 @@ import { $typst } from 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@0.7
                     #grid(
                         columns: (1fr, auto),
                         align: horizon,
-                        [= Declaratie formulier],
+                        [= Declaratie],
                         ${logoTypstBlock}
                     )
                     
