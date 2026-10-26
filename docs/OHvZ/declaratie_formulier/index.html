@@ -5,16 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Declaratieformulier</title>
     
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Shrikhand&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@5.1.3/dist/signature_pad.umd.min.js"></script>
     <link rel="stylesheet" href="../style.css">
 </head>
 <body>
-    <h2>Declaratie formulier</h2>
-    <!-- <form id="fullForm"> -->
-        <details>
-            <summary>Hoe werkt dit? Hoe is dit veilig?</summary>
-            <p>
-                Dit programma is zo ontworpen dat er geen van de hier ingevulde gegevens daadwerkelijk geupload wordt naar een server van derden. 
+    <main>
+
+        <header>
+            <h1>Declaratie formulier</h1>
+        </header>
+        <!-- <form id="fullForm"> -->
+            <details>
+                <summary>Hoe werkt dit? Hoe is dit veilig?</summary>
+                <p>
+                    Dit programma is zo ontworpen dat er geen van de hier ingevulde gegevens daadwerkelijk geupload wordt naar een server van derden. 
                 Dit betekend dat met 'uploaden' niet uploaden naar een server bedoeld wordt, maar uploaden naar jouw browser.
             </p><p>
                 Wat er eigenlijk gebeurt is dat de software die gebruikt wordt om een pdf te maken van jouw ingevulde gegevens, in deze browser op jouw apparaat gedownload wordt.
@@ -45,12 +52,12 @@
             <legend>Producten te declareren</legend>
             <button type="button" id="addButton">Voeg product toe</button>
             
-            </fieldset>
-            <fieldset>
-                <legend for="bewijsmateriaalUpload">Upload bewijsmateriaal</legend>
-                <details>
-                    <summary>Wat is bewijsmateriaal?</summary>
-                    <p>
+        </fieldset>
+        <fieldset>
+            <legend for="bewijsmateriaalUpload">Upload bewijsmateriaal</legend>
+            <details>
+                <summary>Wat is bewijsmateriaal?</summary>
+                <p>
                         Om uitbetaald te kunnen krijgen, heb je een van onderstaande combinaties nodig:
                         </p>
                         <b>Bonnetje</b>
@@ -58,9 +65,9 @@
                             <li>Een volledige en duidelijke foto van het bonnetje.  </li>
                             <li>Als maar een deel van het bonnetje wordt gedeclareerd, geef dan hierboven aan wat je wilt declareren door producten toe te voegen.</li>
                             <li>Als het bonnetje niet duidelijk maakt waar voor betaald is, geef dit ook hierboven aan. </li>
-
+                            
                         </ul>
-
+                        
                         <b>Geen bonnetje?</b>
                         <p>Alleen als er aan alle onderstaande voorwaarden voldaan wordt, kan dit uitbetaald worden.</p>
                         <ul>
@@ -71,12 +78,12 @@
                     </p>
                 </details>
                 <input  type="file" 
-                        name="bewijsmateriaalUpload" 
-                        id="bewijsmateriaalUpload"
-                        accept="image/png, image/jpeg"
-                        multiple>
+                name="bewijsmateriaalUpload" 
+                id="bewijsmateriaalUpload"
+                accept="image/png, image/jpeg"
+                multiple>
             </fieldset>
-
+            
             <fieldset>
                 <legend for="ibanMember">Jouw IBAN</legend>
                 <input type="text" id="ibanMember" placeholder="">
@@ -85,7 +92,7 @@
                 <legend for="rekeninghouder">Rekeninghouder</legend>
                 <input type="text" id="rekeninghouder" placeholder="O.H. Zegen, van">
             </fieldset>
-
+            
             <fieldset>
                 <legend>Verantwoording</legend>
                 <details>
@@ -95,10 +102,10 @@
                     </p>
                 </details>
                 <textarea 
-                    name="comments" 
-                    id="commentsArea"
-                    style="resize:none; height: 20em ;"
-                    
+                name="comments" 
+                id="commentsArea"
+                style="resize:none; height: 20em ;"
+                
                 ></textarea>
             </fieldset>
             
@@ -131,10 +138,11 @@
             <button id="generateBtn">Maak PDF</button>
             <!-- <input type="button" value="Maak PDF"> -->
         <!-- </form> -->
-    <div id="status"></div>
-
-    <script type="module" src="./main.js">
+        <div id="status"></div>
         
-    </script>
+        <script type="module" src="./main.js">
+        
+        </script>
+    </main>
 </body>
 </html>

@@ -187,10 +187,25 @@ import { $typst } from 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@0.7
         const addb = document.getElementById("addButton");
         addb.addEventListener('click', () => {
             console.log('click');
-            var items = document.getElementById("products");
-            itemnr ++;
+            try {
 
-            items.appendChild(generateProduct(itemnr));
+                const desc = document.getElementById(`desc_${itemnr}`).value;
+                const price = document.getElementById(`amount_${itemnr}`).value;
+                if (desc && price > 0) {
+
+                    var items = document.getElementById("products");
+                    itemnr ++;
+                    
+                    items.appendChild(generateProduct(itemnr));
+                }   
+            } catch {
+                var items = document.getElementById("products");
+                itemnr ++;
+                
+                items.appendChild(generateProduct(itemnr));
+            
+            }
+            
         } );
         // Source - https://stackoverflow.com/a/35599724
         // Posted by MaVRoSCy, modified by community. See post 'Timeline' for change history
