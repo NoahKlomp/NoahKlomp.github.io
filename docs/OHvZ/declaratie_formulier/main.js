@@ -337,6 +337,7 @@ import { $typst } from 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@0.7
                         )` :`*Akkoord en getekend:*
                     #table(columns:(50%,50%),
                         [*${tempMemberName}*],[*${tempSellerName}*],
+                        [*${tempMemberName}*],[*${tempSellerName}*],
                         [#image.decode("${safeSvgMember}", format: "svg", width: 100%)],
                         [#image.decode("${safeSvgSeller}", format: "svg", width: 100%)],
                     )`
@@ -398,6 +399,7 @@ import { $typst } from 'https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts@0.7
                     #grid(
                         columns: (1fr, auto),
                         align: horizon,
+                        [= Declaratie],
                         [= Declaratie],
                         ${logoTypstBlock}
                     )
