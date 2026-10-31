@@ -27,6 +27,8 @@ class PythonCodeMaker extends CodeMaker {
             switch (val.type) {
                 case CodeType.STATEMENT:
                     return `${CodeMaker.indent(indent)}# ${val.text.replace("\n","\n"+CodeMaker.indent(indent)+"# ")}`;
+                case CodeType.OUTPUT:
+                    return `${ind}print(${val.text})`;
                 case CodeType.IF:
                     const trueCode = val.content["True"] || [];
                     const falseCode = val.content["False"] || [];
@@ -64,6 +66,8 @@ class JavaCodeMaker extends CodeMaker {
             switch (val.type) {
                 case CodeType.STATEMENT:
                     return `${CodeMaker.indent(indent)}// ${val.text.replace("\n","\n"+CodeMaker.indent(indent)+"// ")}`;
+                case CodeType.OUTPUT:
+                    return `${ind}System.out.println(${val.text});`;
                 case CodeType.IF:
                     const trueCode = val.content["True"] || [Creator.getExport("STATEMENT")];
                     const falseCode = val.content["False"] || [Creator.getExport("STATEMENT")];
@@ -104,6 +108,8 @@ class PseudoCodeMaker extends CodeMaker {
             switch (val.type) {
                 case CodeType.STATEMENT:
                     return `${CodeMaker.indent(indent)}${val.text.replace("\n","\n"+CodeMaker.indent(indent))}`;
+                case CodeType.OUTPUT:
+                    return `${ind}SCHRIJF ${val.text}`;
                 case CodeType.IF:
                     const trueCode = val.content["True"] || [Creator.getExport("STATEMENT")];
                     const falseCode = val.content["False"] || [Creator.getExport("STATEMENT")];

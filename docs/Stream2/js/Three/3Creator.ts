@@ -19,11 +19,12 @@
 
         let thing = document.createElement("option");
         thing.textContent = "select";
+        thing.value = "";
         thing.disabled = true;
         this.types.appendChild(thing);
 
         for (let t in CodeType) {
-            if (!(t == "FUNCTION" || t == "MAIN")) {
+            if (!["FUNCTION", "MAIN", "DECLARATION", "ASSIGNMENT"].includes(t)) {
                 let thing = document.createElement("option");
                 thing.textContent = Words.get(t);
                 thing.value = t;
@@ -31,11 +32,11 @@
             }
 
         }
-        this.types.value = Words.get("Select");
+        this.types.value = "";
         this.types.onchange = (e) => {
             e.preventDefault();
             try{
-                return Creator.getExport(this.types.value);
+                doAfter(Creator.getExport(this.types.value));
             } finally {
                 this.close();
             }
@@ -50,6 +51,8 @@
         switch (export1.type) {
             case CodeType.STATEMENT:
                 return new StatementCode(parent, index, export1.text);
+            case CodeType.OUTPUT:
+                return new OutputCode(parent, index, export1.text);
             case CodeType.WHILE.toString():
                 if (export1.content) {
                     if (export1.content["Looped"]) {
@@ -123,6 +126,12 @@
                     type: CodeType.STATEMENT,
                     content: {},
                     text: "Empty Statement"
+                });
+            case 'OUTPUT':
+                return ({
+                    type: CodeType.OUTPUT,
+                    content: null,
+                    text: "0"
                 });
             case 'WHILE':
                 return ({
@@ -212,4 +221,3 @@ class InvalidExportError extends Error {
         super(message);
     }
 }
-

@@ -1,5 +1,64 @@
 "use strict";
 const languages = ["nl", "en"];
+const FLOWCHART_COMPRESSION_PREFIX = "gzip:";
+let lastFlowchartJson = "";
+let flowchartUrlRevision = 0;
+async function compressFlowchart(json) {
+    if (typeof CompressionStream === "undefined" || typeof DecompressionStream === "undefined") {
+        return null;
+    }
+    const stream = new Blob([json]).stream().pipeThrough(new CompressionStream("gzip"));
+    const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    }
+    const base64Url = btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    return FLOWCHART_COMPRESSION_PREFIX + base64Url;
+}
+async function decompressFlowchart(value) {
+    if (!value.startsWith(FLOWCHART_COMPRESSION_PREFIX)) {
+        return value;
+    }
+    if (typeof DecompressionStream === "undefined") {
+        throw new Error("This browser cannot open compressed flowchart links. Try a current browser.");
+    }
+    const base64 = value.slice(FLOWCHART_COMPRESSION_PREFIX.length)
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
+    const paddedBase64 = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
+    const binary = atob(paddedBase64);
+    const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+    return new Response(stream).text();
+}
+function updateFlowchartUrl(json) {
+    if (json === lastFlowchartJson) {
+        return;
+    }
+    lastFlowchartJson = json;
+    const revision = ++flowchartUrlRevision;
+    void (async () => {
+        let value;
+        try {
+            const compressed = await compressFlowchart(json);
+            value = compressed && encodeURIComponent(compressed).length < encodeURIComponent(json).length
+                ? compressed
+                : json;
+        }
+        catch (error) {
+            console.warn("Could not compress the flowchart; keeping the URL compatible with older links.", error);
+            value = json;
+        }
+        if (revision !== flowchartUrlRevision) {
+            return;
+        }
+        const searchParams = new URLSearchParams(window.location.search);
+        searchParams.set("init", value);
+        const newURL = `${window.location.pathname}?${searchParams.toString()}${window.location.hash}`;
+        history.replaceState(history.state, "", newURL);
+    })();
+}
 function updateURLParams(params) {
     const searchParams = new URLSearchParams(window.location.search);
     for (const [key, value] of Object.entries(params)) {
@@ -33,12 +92,15 @@ class Translator {
         ["deletingNodesGuide", "Klik met rechter muisknop op een blok om deze aan te passen."],
         ["Select", "Selecteer"],
         ["STATEMENT", "Opdracht"],
+        ["OUTPUT", "Uitvoer"],
         ["WHILE", "While lus"],
         ["While", "Zolang"],
         ["For", "Voor elke"],
         ["FOR", "for lus"],
         ["DO_WHILE", "Do-While lus"],
         ["IF", "keuze"],
+        ["Run", "Uitvoeren"],
+        ["RunHelp", "Gebruik opdrachten zoals naam = expressie. Uitvoerblokken evalueren expressies. For-lussen: i from 1 to 10 of i van 1 tot en met 10."],
         ["Add", "Voeg"],
         ["add2", " toe"],
         ["Remove", "Verwijderen"],
@@ -56,6 +118,9 @@ class Translator {
     ]))
         .set("en", new Map([
         ["Main Program", "Main Program"],
+        ["OUTPUT", "Output"],
+        ["Run", "Run"],
+        ["RunHelp", "Assignments use name = expression. Output blocks evaluate expressions. For loops use i from 1 to 10 or i van 1 tot en met 10."],
         ["addingNodesGuide", "Click on the arrow between two nodes to add a new node in between. You can try below."],
         ["changingNodesGuide", "Click on a node to edit the text inside it."],
         ["deletingNodesGuide", "Right-click on a node and left-click on remove, to remove the node from the flowchart."],
@@ -153,10 +218,8 @@ class PopUp {
     close() {
         this.element.style.display = 'none';
         this.background_element.style.display = 'none';
-        if (this.element.parentNode) {
-            this.element.parentNode.removeChild(this.element);
-            this.element.parentNode.removeChild(this.background_element);
-        }
+        this.element.remove();
+        this.background_element.remove();
     }
     setPosition(x, y) {
         this.element.style.left = Number.isFinite(x) ? `${x}px` : x.toString();
@@ -278,21 +341,22 @@ class Creator extends PopUp {
         this.form.appendChild(this.types);
         let thing = document.createElement("option");
         thing.textContent = "select";
+        thing.value = "";
         thing.disabled = true;
         this.types.appendChild(thing);
         for (let t in CodeType) {
-            if (!(t == "FUNCTION" || t == "MAIN")) {
+            if (!["FUNCTION", "MAIN", "DECLARATION", "ASSIGNMENT"].includes(t)) {
                 let thing = document.createElement("option");
                 thing.textContent = Words.get(t);
                 thing.value = t;
                 this.types.appendChild(thing);
             }
         }
-        this.types.value = Words.get("Select");
+        this.types.value = "";
         this.types.onchange = (e) => {
             e.preventDefault();
             try {
-                return Creator.getExport(this.types.value);
+                doAfter(Creator.getExport(this.types.value));
             }
             finally {
                 this.close();
@@ -307,6 +371,8 @@ class Creator extends PopUp {
         switch (export1.type) {
             case CodeType.STATEMENT:
                 return new StatementCode(parent, index, export1.text);
+            case CodeType.OUTPUT:
+                return new OutputCode(parent, index, export1.text);
             case CodeType.WHILE.toString():
                 if (export1.content) {
                     if (export1.content["Looped"]) {
@@ -376,6 +442,12 @@ class Creator extends PopUp {
                     type: CodeType.STATEMENT,
                     content: {},
                     text: "Empty Statement"
+                });
+            case 'OUTPUT':
+                return ({
+                    type: CodeType.OUTPUT,
+                    content: null,
+                    text: "0"
                 });
             case 'WHILE':
                 return ({
@@ -487,6 +559,8 @@ class PythonCodeMaker extends CodeMaker {
             switch (val.type) {
                 case CodeType.STATEMENT:
                     return `${CodeMaker.indent(indent)}# ${val.text.replace("\n", "\n" + CodeMaker.indent(indent) + "# ")}`;
+                case CodeType.OUTPUT:
+                    return `${ind}print(${val.text})`;
                 case CodeType.IF:
                     const trueCode = val.content["True"] || [];
                     const falseCode = val.content["False"] || [];
@@ -521,6 +595,8 @@ class JavaCodeMaker extends CodeMaker {
             switch (val.type) {
                 case CodeType.STATEMENT:
                     return `${CodeMaker.indent(indent)}// ${val.text.replace("\n", "\n" + CodeMaker.indent(indent) + "// ")}`;
+                case CodeType.OUTPUT:
+                    return `${ind}System.out.println(${val.text});`;
                 case CodeType.IF:
                     const trueCode = val.content["True"] || [Creator.getExport("STATEMENT")];
                     const falseCode = val.content["False"] || [Creator.getExport("STATEMENT")];
@@ -560,6 +636,8 @@ class PseudoCodeMaker extends CodeMaker {
             switch (val.type) {
                 case CodeType.STATEMENT:
                     return `${CodeMaker.indent(indent)}${val.text.replace("\n", "\n" + CodeMaker.indent(indent))}`;
+                case CodeType.OUTPUT:
+                    return `${ind}SCHRIJF ${val.text}`;
                 case CodeType.IF:
                     const trueCode = val.content["True"] || [Creator.getExport("STATEMENT")];
                     const falseCode = val.content["False"] || [Creator.getExport("STATEMENT")];
@@ -654,6 +732,8 @@ class CustomMenu {
 CustomMenu.initialize();
 document.onclick = () => { CustomMenu.hide(); };
 (document.getElementById('CopyUrlButton') || document.createElement("button")).innerHTML = Words.get('Copy URL');
+(document.getElementById('RunButton') || document.createElement("button")).innerHTML = Words.get('Run');
+(document.getElementById('RunButton') || document.createElement("button")).title = Words.get('RunHelp');
 (document.getElementById('PythonButton') || document.createElement("button")).innerHTML = Words.get('To Python Comments');
 (document.getElementById('JavaButton') || document.createElement("button")).innerHTML = Words.get('To Java Comments');
 (document.getElementById('ResetButton') || document.createElement("button")).innerHTML = Words.get('Reset');
@@ -664,6 +744,7 @@ const SVG = document.createElementNS(SVG_NS, "svg");
 let CONFIG = {
     "TEXT_COLOUR": "#000",
     "STATEMENT_COLOUR": "#fd83fd",
+    "OUTPUT_COLOUR": "#ffa",
     "SHAPE_MARGIN": 15,
     "TEXT_MARGIN": 10,
     "LINE_WIDTH": 2,
@@ -688,9 +769,19 @@ fetch("https://noahklomp.github.io/Stream2/js/Three/config.json").then(e => e.js
     init();
     throw e;
 });
+var VarType;
+(function (VarType) {
+    VarType["INTEGER"] = "Integer";
+    VarType["REAL"] = "Real";
+    VarType["STRING"] = "String";
+    VarType["BOOLEAN"] = "Boolean";
+})(VarType || (VarType = {}));
 var CodeType;
 (function (CodeType) {
     CodeType["STATEMENT"] = "StatementCode";
+    CodeType["OUTPUT"] = "OutputCode";
+    CodeType["DECLARATION"] = "DeclarationCode";
+    CodeType["ASSIGNMENT"] = "AssignmentCode";
     CodeType["WHILE"] = "WhileLoopCode";
     CodeType["FOR"] = "ForLoopCode";
     CodeType["DO_WHILE"] = "DoWhileLoopCode";
@@ -760,7 +851,7 @@ function openAddMenu(cors, parent, indexToAdd) {
     requestAnimationFrame(() => {
         const map = new Map();
         for (let t in CodeType) {
-            if (!["FUNCTION", "MAIN"].includes(t)) {
+            if (!["FUNCTION", "MAIN", "DECLARATION", "ASSIGNMENT"].includes(t)) {
                 map.set(Words.get("Add") + " " + Words.get(t) + Words.get("add2"), (() => {
                     Creator.exportToCode(Creator.getExport(t), parent, indexToAdd);
                 }));
@@ -939,6 +1030,7 @@ class Code {
     }
 }
 class StatementCode extends Code {
+    codeType;
     _textElement = document.createElementNS(SVG_NS, "text");
     _rectangle = document.createElementNS(SVG_NS, "rect");
     textbbox = getTextDimentions("");
@@ -946,9 +1038,10 @@ class StatementCode extends Code {
         TODO:
           - Shape border?
      */
-    constructor(parent, index, text) {
+    constructor(parent, index, text, codeType = CodeType.STATEMENT) {
         super(parent, index);
-        this._innerElement.setAttribute("class", "statement");
+        this.codeType = codeType;
+        this._innerElement.setAttribute("class", codeType === CodeType.OUTPUT ? "output" : "statement");
         this._innerElement.appendChild(this._rectangle);
         this._innerElement.appendChild(this._textElement);
         this._textElement.style.fontFamily = `monospace`;
@@ -960,7 +1053,7 @@ class StatementCode extends Code {
     }
     get export() {
         return {
-            type: CodeType.STATEMENT,
+            type: this.codeType,
             content: null,
             text: this._textElement.textContent || ""
         };
@@ -981,7 +1074,7 @@ class StatementCode extends Code {
         // this._rectangle.setAttribute("y", `${0}`);
         this._rectangle.style.transform = `translate(${0}px,${0}px)`;
         this._rectangle.setAttribute("class", "statement-rect");
-        this._rectangle.setAttribute("fill", CONFIG.STATEMENT_COLOUR);
+        this._rectangle.setAttribute("fill", this.codeType === CodeType.OUTPUT ? CONFIG.OUTPUT_COLOUR : CONFIG.STATEMENT_COLOUR);
         this._rectangle.setAttribute("width", `${this.width}`);
         this._rectangle.setAttribute("height", `${this.innerHeight}`);
     }
@@ -994,6 +1087,11 @@ class StatementCode extends Code {
     }
     get text() {
         return this._textElement.textContent || "";
+    }
+}
+class OutputCode extends StatementCode {
+    constructor(parent, index, text) {
+        super(parent, index, text, CodeType.OUTPUT);
     }
 }
 class GeneralLoopCode extends Code {
@@ -1779,8 +1877,12 @@ class Main {
         this.SVG.setAttribute("width", `${width}`);
         this.SVG.setAttribute("height", `${(this.container.height + this.startNode.height + this.endNode.height + CONFIG.SHAPE_MARGIN)}`);
         if (this.useUrl) {
-            updateURLParams({ init: JSON.stringify(this.export) });
+            updateFlowchartUrl(JSON.stringify(this.export));
         }
+    }
+    enableUrlSync() {
+        this.useUrl = true;
+        this.update();
     }
     get programTitle() {
         return Words.get("Main Program");
@@ -1804,35 +1906,40 @@ const recursiveContentAdder = (content, i, container) => {
     }
 };
 function init() {
-    main = new Main(document.querySelector("#flowchartcontainer") || document.body);
-    const recursiveContentAdder = (content, i, container) => {
-        if (i < content.length) {
-            Creator.exportToCode(content[i], container, i);
-            requestAnimationFrame(() => {
-                recursiveContentAdder(content, i + 1, container);
-            });
-        }
-    };
+    main = new Main(document.querySelector("#flowchartcontainer") || document.body, false);
+    const serialized = new URLSearchParams(window.location.search).get("init");
+    if (serialized) {
+        void decompressFlowchart(serialized)
+            .then(value => {
+            const program = JSON.parse(value);
+            if (program.type !== "Program" || !Array.isArray(program.content)) {
+                throw new Error("The shared URL does not contain a valid flowchart.");
+            }
+            addContent(program.content, 0);
+        })
+            .catch(error => {
+            console.error("Could not load the flowchart from this URL.", error);
+        });
+        return;
+    }
+    main.enableUrlSync();
     try {
-        const url = new URLSearchParams(window.location.search);
-        if (url.has("init")) {
-            const content = JSON.parse(url.get("init") || "");
-            if (content.type == "Program") {
-                recursiveContentAdder(content.content, 0, main.container);
-            }
-            else
-                throw Error();
-        }
-        else {
-            if (!window.localStorage.getItem("tutorialSeen")) {
-                new Tutorial();
-                window.localStorage.setItem("tutorialSeen", "1");
-            }
-            throw Error();
+        if (!window.localStorage.getItem("tutorialSeen")) {
+            new Tutorial();
+            window.localStorage.setItem("tutorialSeen", "1");
         }
     }
-    catch {
+    catch (error) {
+        console.warn("Could not save the tutorial preference.", error);
     }
+}
+function addContent(content, index) {
+    if (index >= content.length) {
+        main.enableUrlSync();
+        return;
+    }
+    Creator.exportToCode(content[index], main.container, index);
+    requestAnimationFrame(() => addContent(content, index + 1));
 }
 function exportAll() {
     return JSON.stringify(main.export);
@@ -1878,5 +1985,376 @@ class TextEditor extends Editor {
         this.setPosition(e.clientX, e.clientY);
         this.open();
         this.textInput.select();
+    }
+}
+class FlowchartInterpreter {
+    program;
+    variables = new Map();
+    output = [];
+    steps = 0;
+    static MAX_STEPS = 10000;
+    static MAX_OUTPUT_LINES = 1000;
+    constructor(program) {
+        this.program = program;
+    }
+    execute() {
+        this.runNodes(this.program.content);
+        return this.output;
+    }
+    runNodes(nodes) {
+        for (const node of nodes) {
+            this.tick();
+            switch (node.type) {
+                case CodeType.STATEMENT:
+                    this.runStatement(node.text);
+                    break;
+                case CodeType.OUTPUT:
+                    if (this.output.length >= FlowchartInterpreter.MAX_OUTPUT_LINES) {
+                        throw new Error("Output limit exceeded.");
+                    }
+                    this.output.push(this.formatValue(this.evaluate(node.text)));
+                    break;
+                case CodeType.IF:
+                    this.runNodes(this.requireBoolean(node.text, "if condition")
+                        ? node.content["True"] || []
+                        : node.content["False"] || []);
+                    break;
+                case CodeType.FOR:
+                    this.runFor(node.text, node.content["Looped"] || []);
+                    break;
+                case CodeType.WHILE:
+                    while (this.requireBoolean(node.text, "while condition")) {
+                        this.tick();
+                        this.runNodes(node.content["Looped"] || []);
+                    }
+                    break;
+                case CodeType.DO_WHILE:
+                    do {
+                        this.tick();
+                        this.runNodes(node.content["Looped"] || []);
+                    } while (this.requireBoolean(node.text, "do-while condition"));
+                    break;
+                default:
+                    throw new Error(`Unsupported flowchart node type: ${node.type}`);
+            }
+        }
+    }
+    runStatement(text) {
+        const statement = text.trim();
+        if (!statement || /^empty statement$/i.test(statement)) {
+            return;
+        }
+        const assignment = /^([A-Za-z_][A-Za-z0-9_]*)\s*=(?!=|>)\s*(.+)$/s.exec(statement);
+        if (!assignment) {
+            throw new Error(`Unsupported statement "${statement}". Use name = expression.`);
+        }
+        this.variables.set(assignment[1], this.evaluate(assignment[2]));
+    }
+    runFor(text, body) {
+        const match = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s+(?:from|van)\s+(.+?)\s+(?:to|tot(?:\s+(?:en\s+met|\(en\s+met\)))?)\s+(.+?)\s*$/i.exec(text);
+        if (!match) {
+            throw new Error(`Invalid for loop "${text}". Use "i from 1 to 10" or "i van 1 tot en met 10".`);
+        }
+        const start = this.evaluate(match[2]);
+        const end = this.evaluate(match[3]);
+        if (typeof start !== "number" || typeof end !== "number" ||
+            !Number.isFinite(start) || !Number.isFinite(end)) {
+            throw new Error("For loop start and end values must be finite numbers.");
+        }
+        const increment = start <= end ? 1 : -1;
+        for (let value = start; increment > 0 ? value <= end : value >= end; value += increment) {
+            this.tick();
+            this.variables.set(match[1], value);
+            this.runNodes(body);
+        }
+    }
+    requireBoolean(expression, label) {
+        const result = this.evaluate(expression);
+        if (typeof result !== "boolean") {
+            throw new Error(`The ${label} must evaluate to true or false.`);
+        }
+        return result;
+    }
+    evaluate(expression) {
+        return new ExpressionParser(expression, this.variables).parse();
+    }
+    tick() {
+        this.steps += 1;
+        if (this.steps > FlowchartInterpreter.MAX_STEPS) {
+            throw new Error(`Execution stopped after ${FlowchartInterpreter.MAX_STEPS} steps.`);
+        }
+    }
+    formatValue(value) {
+        return typeof value === "boolean" ? (value ? "true" : "false") : String(value);
+    }
+}
+class ExpressionParser {
+    variables;
+    tokens;
+    position = 0;
+    constructor(expression, variables) {
+        this.variables = variables;
+        this.tokens = this.tokenize(expression);
+    }
+    parse() {
+        if (this.current.type === "end") {
+            throw new Error("Expression cannot be empty.");
+        }
+        const value = this.parseExpression(0);
+        if (!this.isAtEnd()) {
+            const remaining = this.current;
+            throw new Error(`Unexpected token "${this.describe(remaining)}" in expression.`);
+        }
+        return value;
+    }
+    isAtEnd() {
+        return this.current.type === "end";
+    }
+    get current() {
+        return this.tokens[this.position];
+    }
+    parseExpression(minimumPrecedence) {
+        let left = this.parsePrefix();
+        while (this.current.type === "operator") {
+            const operator = this.current.text;
+            const precedence = this.precedence(operator);
+            if (precedence < minimumPrecedence) {
+                break;
+            }
+            this.position += 1;
+            const right = this.parseExpression(precedence + (operator === "**" ? 0 : 1));
+            left = this.apply(operator, left, right);
+        }
+        return left;
+    }
+    parsePrefix() {
+        const token = this.current;
+        this.position += 1;
+        if (token.type === "literal") {
+            return token.value;
+        }
+        if (token.type === "identifier") {
+            const value = this.variables.get(token.text);
+            if (value === undefined) {
+                throw new Error(`Variable "${token.text}" has not been assigned.`);
+            }
+            return value;
+        }
+        if (token.type === "leftParen") {
+            const value = this.parseExpression(0);
+            if (this.current.type !== "rightParen") {
+                throw new Error("Missing closing parenthesis.");
+            }
+            this.position += 1;
+            return value;
+        }
+        if (token.type === "operator" && ["+", "-", "not", "!"].includes(token.text)) {
+            const value = this.parseExpression(8);
+            if (token.text === "not" || token.text === "!") {
+                if (typeof value !== "boolean") {
+                    throw new Error("The not operator requires a boolean value.");
+                }
+                return !value;
+            }
+            if (typeof value !== "number") {
+                throw new Error(`The ${token.text} operator requires a number.`);
+            }
+            return this.checkedNumber(token.text === "-" ? -value : value);
+        }
+        throw new Error(`Expected a value, found "${this.describe(token)}".`);
+    }
+    apply(operator, left, right) {
+        if (operator === "and" || operator === "or" || operator === "&&" || operator === "||") {
+            if (typeof left !== "boolean" || typeof right !== "boolean") {
+                throw new Error(`The ${operator} operator requires boolean values.`);
+            }
+            return operator === "and" || operator === "&&" ? left && right : left || right;
+        }
+        if (operator === "==" || operator === "=") {
+            return left === right;
+        }
+        if (operator === "!=") {
+            return left !== right;
+        }
+        if (operator === "+" && (typeof left === "string" || typeof right === "string")) {
+            return this.format(left) + this.format(right);
+        }
+        if (["<", "<=", ">", ">="].includes(operator)) {
+            if (typeof left !== typeof right || typeof left === "boolean") {
+                throw new Error(`The ${operator} operator requires two numbers or two strings.`);
+            }
+            if (operator === "<")
+                return left < right;
+            if (operator === "<=")
+                return left <= right;
+            if (operator === ">")
+                return left > right;
+            return left >= right;
+        }
+        if (typeof left !== "number" || typeof right !== "number") {
+            throw new Error(`The ${operator} operator requires numeric values.`);
+        }
+        switch (operator) {
+            case "+": return this.checkedNumber(left + right);
+            case "-": return this.checkedNumber(left - right);
+            case "*": return this.checkedNumber(left * right);
+            case "/": return this.checkedNumber(left / right);
+            case "%": return this.checkedNumber(left % right);
+            case "**": return this.checkedNumber(left ** right);
+            default: throw new Error(`Unsupported operator "${operator}".`);
+        }
+    }
+    precedence(operator) {
+        if (operator === "or" || operator === "||")
+            return 1;
+        if (operator === "and" || operator === "&&")
+            return 2;
+        if (["==", "!=", "="].includes(operator))
+            return 3;
+        if (["<", "<=", ">", ">="].includes(operator))
+            return 4;
+        if (operator === "+" || operator === "-")
+            return 5;
+        if (["*", "/", "%"].includes(operator))
+            return 6;
+        if (operator === "**")
+            return 7;
+        return -1;
+    }
+    tokenize(expression) {
+        const tokens = [];
+        let index = 0;
+        while (index < expression.length) {
+            const remaining = expression.slice(index);
+            const whitespace = /^\s+/.exec(remaining);
+            if (whitespace) {
+                index += whitespace[0].length;
+                continue;
+            }
+            const number = /^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?/.exec(remaining);
+            if (number) {
+                tokens.push({ type: "literal", value: Number(number[0]) });
+                index += number[0].length;
+                continue;
+            }
+            const character = expression[index];
+            if (character === "'" || character === "\"") {
+                const parsed = this.readString(expression, index);
+                tokens.push({ type: "literal", value: parsed.value });
+                index = parsed.end;
+                continue;
+            }
+            const identifier = /^[A-Za-z_][A-Za-z0-9_]*/.exec(remaining);
+            if (identifier) {
+                const text = identifier[0];
+                const keyword = text.toLowerCase();
+                if (["true", "waar"].includes(keyword)) {
+                    tokens.push({ type: "literal", value: true });
+                }
+                else if (["false", "onwaar"].includes(keyword)) {
+                    tokens.push({ type: "literal", value: false });
+                }
+                else if (["and", "en"].includes(keyword)) {
+                    tokens.push({ type: "operator", text: "and" });
+                }
+                else if (["or", "of"].includes(keyword)) {
+                    tokens.push({ type: "operator", text: "or" });
+                }
+                else if (["not", "niet"].includes(keyword)) {
+                    tokens.push({ type: "operator", text: "not" });
+                }
+                else {
+                    tokens.push({ type: "identifier", text });
+                }
+                index += text.length;
+                continue;
+            }
+            if (character === "(") {
+                tokens.push({ type: "leftParen" });
+                index += 1;
+                continue;
+            }
+            if (character === ")") {
+                tokens.push({ type: "rightParen" });
+                index += 1;
+                continue;
+            }
+            const operator = ["**", "<=", ">=", "==", "!=", "&&", "||", "+", "-", "*", "/", "%", "<", ">", "=", "!"]
+                .find(candidate => remaining.startsWith(candidate));
+            if (!operator) {
+                throw new Error(`Unexpected character "${character}" in expression.`);
+            }
+            tokens.push({ type: "operator", text: operator });
+            index += operator.length;
+        }
+        tokens.push({ type: "end" });
+        return tokens;
+    }
+    readString(expression, start) {
+        const quote = expression[start];
+        let value = "";
+        let index = start + 1;
+        while (index < expression.length) {
+            const character = expression[index];
+            if (character === quote) {
+                return { value, end: index + 1 };
+            }
+            if (character === "\\") {
+                index += 1;
+                if (index >= expression.length)
+                    break;
+                const escaped = expression[index];
+                value += escaped === "n" ? "\n" :
+                    escaped === "r" ? "\r" :
+                        escaped === "t" ? "\t" : escaped;
+            }
+            else {
+                value += character;
+            }
+            index += 1;
+        }
+        throw new Error("String value is missing its closing quote.");
+    }
+    checkedNumber(value) {
+        if (!Number.isFinite(value)) {
+            throw new Error("Expression resulted in a non-finite number.");
+        }
+        return value;
+    }
+    format(value) {
+        return typeof value === "boolean" ? (value ? "true" : "false") : String(value);
+    }
+    describe(token) {
+        if (token.type === "literal")
+            return String(token.value);
+        if (token.type === "identifier")
+            return token.text;
+        if (token.type === "operator")
+            return token.text;
+        return token.type === "end" ? "end of expression" : token.type;
+    }
+}
+class FlowchartRunPopup extends PopUp {
+    constructor(result, isError) {
+        super();
+        const heading = document.createElement("h2");
+        heading.textContent = isError ? "Execution stopped" : "Output";
+        const content = document.createElement("pre");
+        content.textContent = result || (isError ? "" : "Program finished with no output.");
+        content.style.whiteSpace = "pre-wrap";
+        this.add(heading);
+        this.add(content);
+        this.setFullScreen();
+        this.open();
+    }
+}
+function runFlowchart() {
+    try {
+        const result = new FlowchartInterpreter(main.export).execute();
+        new FlowchartRunPopup(result.join("\n"), false);
+    }
+    catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        new FlowchartRunPopup(message, true);
     }
 }

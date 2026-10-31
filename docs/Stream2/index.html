@@ -40,7 +40,7 @@
             left: 0;
             right: 0;
             display: flex;
-
+            overflow-x: auto;
         }
 
         button {
@@ -61,7 +61,8 @@
         svg.statement,
         svg.DoWhileLoopBox,
         svg.loopbox,
-        svg.IfBox {
+        svg.IfBox,
+        .output {
             font-family: monospace;
         }
     </style>
@@ -78,6 +79,7 @@
     <div id="flowchartcontainer"></div>
 
     <div id="actingButtons" class="funButtons">
+        <button id="RunButton" onclick="runFlowchart()">Run</button>
         <button id="PythonButton" 
             onclick="new CopyCodePopUp('python',main.export);hljs.highlightAll();">To Python Comments</button>
         <button id="JavaButton" 

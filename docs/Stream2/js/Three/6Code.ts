@@ -6,6 +6,7 @@ const SVG = document.createElementNS(SVG_NS, "svg");
 let CONFIG = { //standard config
     "TEXT_COLOUR": "#000",
     "STATEMENT_COLOUR": "#fd83fd",
+    "OUTPUT_COLOUR": "#ffa",
     "SHAPE_MARGIN": 15,
     "TEXT_MARGIN": 10,
     "LINE_WIDTH": 2,
@@ -38,10 +39,30 @@ type Export = {
     type: CodeType,
     content: Content,
     text: string
-} |  {
+} | {
     type: "StatementCode" | CodeType.STATEMENT,
     content: null,
     text: string
+} | {
+    type: CodeType.OUTPUT,
+    content: null,
+    text: string
+} | {
+    type: "DeclarationCode" | CodeType.DECLARATION,
+    content: null,
+    varName: string,
+    varType: VarType
+}| {
+    type: "AssignmentCode" | CodeType.ASSIGNMENT,
+    content: null,
+    varName: string,
+    varType: VarType
+}
+enum VarType {
+    INTEGER = "Integer",
+    REAL = "Real",
+    STRING = "String",
+    BOOLEAN = "Boolean"
 }
 type variable = {
     name: string,
@@ -82,6 +103,9 @@ type ContentType = "Looped"|
 
 enum CodeType {
     STATEMENT = "StatementCode",
+    OUTPUT = "OutputCode",
+    DECLARATION = "DeclarationCode",
+    ASSIGNMENT = "AssignmentCode",
     WHILE = "WhileLoopCode",
     FOR = "ForLoopCode",
     DO_WHILE = "DoWhileLoopCode",
@@ -159,7 +183,7 @@ function openAddMenu(cors:Coordinates, parent:CodeContainer, indexToAdd:number) 
     requestAnimationFrame(()=>{
         const map = new Map<string, () => void>();
         for (let t in CodeType) {
-            if (!["FUNCTION", "MAIN"].includes(t)){
+            if (!["FUNCTION", "MAIN", "DECLARATION", "ASSIGNMENT"].includes(t)){
                 map.set(Words.get("Add")+" "+Words.get(t)+Words.get("add2"), (() => {
                     Creator.exportToCode(Creator.getExport(t), parent, indexToAdd);
                 }));
@@ -371,9 +395,14 @@ class StatementCode extends Code {
         TODO:
           - Shape border?
      */
-    constructor(parent: CodeContainer, index: number, text: string) {
+    constructor(
+        parent: CodeContainer,
+        index: number,
+        text: string,
+        private readonly codeType: CodeType.STATEMENT | CodeType.OUTPUT = CodeType.STATEMENT
+    ) {
         super(parent, index);
-        this._innerElement.setAttribute("class", "statement");
+        this._innerElement.setAttribute("class", codeType === CodeType.OUTPUT ? "output" : "statement");
         this._innerElement.appendChild(this._rectangle);
         this._innerElement.appendChild(this._textElement);
         this._textElement.style.fontFamily = `monospace`;
@@ -387,7 +416,7 @@ class StatementCode extends Code {
 
     get export(): Export {
         return {
-            type: CodeType.STATEMENT,
+            type: this.codeType,
             content: null,
             text: this._textElement.textContent || ""
         };
@@ -413,7 +442,7 @@ class StatementCode extends Code {
         this._rectangle.style.transform = `translate(${0}px,${0}px)`;
 
         this._rectangle.setAttribute("class", "statement-rect");
-        this._rectangle.setAttribute("fill", CONFIG.STATEMENT_COLOUR);
+        this._rectangle.setAttribute("fill", this.codeType === CodeType.OUTPUT ? CONFIG.OUTPUT_COLOUR : CONFIG.STATEMENT_COLOUR);
         this._rectangle.setAttribute("width", `${this.width}`);
         this._rectangle.setAttribute("height", `${this.innerHeight}`);
     }
@@ -428,6 +457,12 @@ class StatementCode extends Code {
     }
     get text():string {
         return this._textElement.textContent || "";
+    }
+}
+
+class OutputCode extends StatementCode {
+    constructor(parent: CodeContainer, index: number, text: string) {
+        super(parent, index, text, CodeType.OUTPUT);
     }
 }
 
@@ -1377,9 +1412,13 @@ class Main {
             (this.container.height + this.startNode.height + this.endNode.height + CONFIG.SHAPE_MARGIN)
         }`);
         if (this.useUrl) {
-            updateURLParams({init:JSON.stringify(this.export)});
+            updateFlowchartUrl(JSON.stringify(this.export));
         }
 
+    }
+    enableUrlSync(): void {
+        this.useUrl = true;
+        this.update();
     }
     get programTitle():string {
         return Words.get("Main Program");
@@ -1405,37 +1444,43 @@ let main: Main;
         }
     }
 function init() {
-    main = new Main(document.querySelector("#flowchartcontainer") || document.body);
-    const recursiveContentAdder = (content: Export[], i:number, container:CodeContainer) => {
-        if (i < content.length) {
-            Creator.exportToCode(content[i],container,i);
-            requestAnimationFrame(()=>{
-                recursiveContentAdder(content, i+1, container);
+    main = new Main(document.querySelector("#flowchartcontainer") || document.body, false);
+    const serialized = new URLSearchParams(window.location.search).get("init");
+
+    if (serialized) {
+        void decompressFlowchart(serialized)
+            .then(value => {
+                const program: ProgramExport = JSON.parse(value);
+                if (program.type !== "Program" || !Array.isArray(program.content)) {
+                    throw new Error("The shared URL does not contain a valid flowchart.");
+                }
+                addContent(program.content, 0);
+            })
+            .catch(error => {
+                console.error("Could not load the flowchart from this URL.", error);
             });
-        }
+        return;
     }
+
+    main.enableUrlSync();
     try {
-        const url = new URLSearchParams(window.location.search);
-        if (url.has("init")) {
-            const content = JSON.parse(url.get("init") || "");
-            if (content.type == "Program") {
-                recursiveContentAdder(content.content,0,main.container);
-            } else throw Error();
-        } else{
-            if (! window.localStorage.getItem("tutorialSeen")){
-                new Tutorial();
-                window.localStorage.setItem("tutorialSeen", "1");
-            }
-            throw Error();
+        if (!window.localStorage.getItem("tutorialSeen")) {
+            new Tutorial();
+            window.localStorage.setItem("tutorialSeen", "1");
         }
-
-    } catch {
+    } catch (error) {
+        console.warn("Could not save the tutorial preference.", error);
     }
+}
 
+function addContent(content: Export[], index: number): void {
+    if (index >= content.length) {
+        main.enableUrlSync();
+        return;
+    }
+    Creator.exportToCode(content[index], main.container, index);
+    requestAnimationFrame(() => addContent(content, index + 1));
 }
 function exportAll():string {
     return JSON.stringify(main.export);
 }
-
-
-

@@ -68,6 +68,8 @@ document.onclick = (): void => {CustomMenu.hide()}
 
 
 (document.getElementById('CopyUrlButton')||document.createElement("button")).innerHTML = Words.get('Copy URL');
+(document.getElementById('RunButton')||document.createElement("button")).innerHTML = Words.get('Run');
+(document.getElementById('RunButton')||document.createElement("button")).title = Words.get('RunHelp');
 (document.getElementById('PythonButton')||document.createElement("button")).innerHTML = Words.get('To Python Comments');
 (document.getElementById('JavaButton')||document.createElement("button")).innerHTML = Words.get('To Java Comments');
 (document.getElementById('ResetButton')||document.createElement("button")).innerHTML = Words.get('Reset');

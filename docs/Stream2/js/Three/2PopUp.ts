@@ -75,10 +75,8 @@ abstract class PopUp {
     public close(): void {
         this.element.style.display = 'none';
         this.background_element.style.display = 'none';
-        if (this.element.parentNode) {
-            this.element.parentNode.removeChild(this.element);
-            this.element.parentNode.removeChild(this.background_element);
-        }
+        this.element.remove();
+        this.background_element.remove();
     }
     public setPosition(x: number | string, y: number | string): void {
         this.element.style.left = Number.isFinite(x)? `${x}px` : x.toString();
