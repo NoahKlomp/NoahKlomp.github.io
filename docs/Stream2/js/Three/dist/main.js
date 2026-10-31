@@ -100,7 +100,7 @@ class Translator {
         ["DO_WHILE", "Do-While lus"],
         ["IF", "keuze"],
         ["Run", "Uitvoeren"],
-        ["RunHelp", "Gebruik opdrachten zoals naam = expressie. Uitvoerblokken evalueren expressies. For-lussen: i from 1 to 10 of i van 1 tot en met 10."],
+        ["RunHelp", "Gebruik opdrachten zoals naam = expressie. Uitvoerblokken evalueren expressies. For-lussen: i van 1 tot 10 (10 exclusief) of i van 1 tot en met 10 (10 inclusief)."],
         ["Add", "Voeg"],
         ["add2", " toe"],
         ["Remove", "Verwijderen"],
@@ -120,7 +120,7 @@ class Translator {
         ["Main Program", "Main Program"],
         ["OUTPUT", "Output"],
         ["Run", "Run"],
-        ["RunHelp", "Assignments use name = expression. Output blocks evaluate expressions. For loops use i from 1 to 10 or i van 1 tot en met 10."],
+        ["RunHelp", "Assignments use name = expression. Output blocks evaluate expressions. For loops: i from 1 to 10 (excluding 10), or i from 1 to and including 10."],
         ["addingNodesGuide", "Click on the arrow between two nodes to add a new node in between. You can try below."],
         ["changingNodesGuide", "Click on a node to edit the text inside it."],
         ["deletingNodesGuide", "Right-click on a node and left-click on remove, to remove the node from the flowchart."],
@@ -2051,18 +2051,21 @@ class FlowchartInterpreter {
         this.variables.set(assignment[1], this.evaluate(assignment[2]));
     }
     runFor(text, body) {
-        const match = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s+(?:from|van)\s+(.+?)\s+(?:to|tot(?:\s+(?:en\s+met|\(en\s+met\)))?)\s+(.+?)\s*$/i.exec(text);
+        const match = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s+(?:from|van)\s+(.+?)\s+(to(?:\s+and\s+including)?|tot(?:\s+(?:en\s+met|\(en\s+met\)))?)\s+(.+?)\s*$/i.exec(text);
         if (!match) {
-            throw new Error(`Invalid for loop "${text}". Use "i from 1 to 10" or "i van 1 tot en met 10".`);
+            throw new Error(`Invalid for loop "${text}". Use "i from 1 to 10" (excluding 10) or "i van 1 tot en met 10" (including 10).`);
         }
         const start = this.evaluate(match[2]);
-        const end = this.evaluate(match[3]);
+        const inclusive = /\b(?:and\s+including|en\s+met)\b/i.test(match[3]);
+        const end = this.evaluate(match[4]);
         if (typeof start !== "number" || typeof end !== "number" ||
             !Number.isFinite(start) || !Number.isFinite(end)) {
             throw new Error("For loop start and end values must be finite numbers.");
         }
         const increment = start <= end ? 1 : -1;
-        for (let value = start; increment > 0 ? value <= end : value >= end; value += increment) {
+        for (let value = start; increment > 0
+            ? (inclusive ? value <= end : value < end)
+            : (inclusive ? value >= end : value > end); value += increment) {
             this.tick();
             this.variables.set(match[1], value);
             this.runNodes(body);

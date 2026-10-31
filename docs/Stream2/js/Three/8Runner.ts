@@ -75,20 +75,23 @@ class FlowchartInterpreter {
     }
 
     private runFor(text: string, body: Export[]): void {
-        const match = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s+(?:from|van)\s+(.+?)\s+(?:to|tot(?:\s+(?:en\s+met|\(en\s+met\)))?)\s+(.+?)\s*$/i.exec(text);
+        const match = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s+(?:from|van)\s+(.+?)\s+(to(?:\s+and\s+including)?|tot(?:\s+(?:en\s+met|\(en\s+met\)))?)\s+(.+?)\s*$/i.exec(text);
         if (!match) {
-            throw new Error(`Invalid for loop "${text}". Use "i from 1 to 10" or "i van 1 tot en met 10".`);
+            throw new Error(`Invalid for loop "${text}". Use "i from 1 to 10" (excluding 10) or "i van 1 tot en met 10" (including 10).`);
         }
 
         const start = this.evaluate(match[2]);
-        const end = this.evaluate(match[3]);
+        const inclusive = /\b(?:and\s+including|en\s+met)\b/i.test(match[3]);
+        const end = this.evaluate(match[4]);
         if (typeof start !== "number" || typeof end !== "number" ||
             !Number.isFinite(start) || !Number.isFinite(end)) {
             throw new Error("For loop start and end values must be finite numbers.");
         }
 
         const increment = start <= end ? 1 : -1;
-        for (let value = start; increment > 0 ? value <= end : value >= end; value += increment) {
+        for (let value = start; increment > 0
+            ? (inclusive ? value <= end : value < end)
+            : (inclusive ? value >= end : value > end); value += increment) {
             this.tick();
             this.variables.set(match[1], value);
             this.runNodes(body);
