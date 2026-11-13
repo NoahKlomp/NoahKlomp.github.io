@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Opdracht C: Fishjes leggen</title>
+    <style>
+        :root {
+            --nr: 10;
+        }
+        body {
+            font-family: sans-serif;
+        }
+        svg {
+            margin:0 0 0 0;
+            padding: 0 0 0 0;
+        }
+        #codeEditor {
+            box-sizing: border-box;
+            min-width: 32rem;
+            min-height: 70vh;
+            padding: 0.75rem;
+            border: 1px solid #888;
+            font-family: monospace;
+            white-space: pre;
+        }
+        #runStatus {
+            white-space: pre-wrap;
+        }
+        #outp td {
+            height: calc(min(95vh,47vw) / var(--nr));
+            max-height: calc(min(95vh,47vw) / var(--nr));
+            width: calc(min(95vh,47vw) / var(--nr));
+            max-width: calc(min(95vh,47vw) / var(--nr));
+            border: 2px solid black;
+        }
+        table, tr, td{
+            border-collapse: collapse;
+            padding: 0 0 0 0;
+            margin: 0 0 0 0;
+        }
+    </style>
+</head>
+<body>
+    <button id="reset" type="button">Reset</button>
+    <table>
+        <tr>
+            <td>    
+                <table id="outp"></table>
+            </td>
+            <td>
+                <div id="codeEditor" aria-label="JavaScript code editor"></div>
+                <!-- <button id="run" type="button">Run code</button> -->
+                <pre id="runStatus" role="status" aria-live="polite"></pre>
+            </td>
+        </tr>
+    </table>
+    <script type="module">
+        import { CodeJar } from "../../../static/codejar/dist/codejar.js";
+
+        const nr = 10;
+        const jar = CodeJar(document.querySelector("#codeEditor"), () => {});
+        let table = document.querySelector("#outp");
+        for (let y = 0;y < nr;y++) {
+            let row = document.createElement("tr");
+            row.id = `r_${y}`;
+            table.appendChild(row);
+            for (let x = 0; x < nr; x++) {
+                let cel = document.createElement("td");
+                cel.id = `c_${x}_${y}`;
+                cel.classList.add("fishCell");
+                row.appendChild(cel);
+            }
+        }
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }   
+
+        async function circle(x,y, col="yellow") {
+            try {
+                
+                const el = document.querySelector(`#c_${x}_${y}`);
+                el.innerHTML = `
+                <svg width="100%" height="100%">
+                    <circle cx="50%" cy="50%" r="45%" fill="gold" stroke="black" stroke-width="2" />
+                    </svg>`;
+                await sleep(50);
+                el.innerHTML = `
+                <svg width="100%" height="100%">
+                    <circle cx="50%" cy="50%" r="45%" fill="${col}" stroke="black" stroke-width="2" />
+                    </svg>`;
+                await sleep(50);
+            } catch (e) {
+                // console.log(e);
+            }
+        }
+        function runCode(code) {
+            document.querySelectorAll(".fishCell").forEach(e => {
+                if (e.innerHTML != "") e.innerHTML = "";
+            });
+            const deadline = Date.now() + 100+nr*nr*200;
+            const check = `if (Date.now() > ${deadline}) {for (let x = 0;x<nr;x++){circle(x,nr-x-1,"red");circle(x,x,"red")}; throw "tooLong"}`;
+
+            // Injects the time check at the start of every for, while, and do loop
+            const safeCode = code.replace(
+                /\b(for\s*\([^)]*\)|while\s*\([^)]*\)|do)\s*\{/g,
+                `$1 { ${check}`
+            );
+
+            const status = document.querySelector("#runStatus");
+            status.textContent = "Running...";
+            try {
+                const result = eval(`(async () => {${safeCode}})()`);
+                Promise.resolve(result).then(
+                    () => { status.textContent = "Finished."; },
+                    (error) => { status.textContent = String(error); },
+                );
+            } catch (error) {
+                status.textContent = String(error);
+            }
+        }
+        
+        // document.querySelector("#run").addEventListener("click", () => {
+        //     runCode(jar.toString());
+        // });
+        let running = false;
+        let lastRun = "";
+        setInterval(() => {
+            const c = jar.toString();
+            if (!running && c != lastRun) {
+                running = true;
+                runCode(c);
+                lastRun = c;
+                running = false;
+            }
+        }, 100);
+
+        document.querySelector("#reset").addEventListener("click", () => {
+            window.location.reload();
+        });
+    </script>
+</body>
+</html>

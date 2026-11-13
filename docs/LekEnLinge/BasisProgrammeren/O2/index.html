@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Opdracht B: </title>
+    
+    <link rel="stylesheet" href="/Stream2/hljs/styles/atom-one-dark.min.css">
+</head>
+<body>
+    <div style="background-color: red;padding: 5px;" onclick="window.location.reload();">RESET</div>
+    <h1>Basis code:</h1>
+    <pre id="basic_code"><code>
+
+    </code></pre>
+    <h2>Voer een wachtwoord in:</h2>
+    <input type="text" name="pw" id="pw"><button onclick="button_clicked = true;">login</button>
+
+    <h1>Uitgevoerde code:</h1>
+    <pre id="ran_code">
+        <code class="language-javascript">
+        </code>
+    </pre>
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.12.0/styles/default.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.12.0/highlight.min.js"></script>
+
+    and it's easy to individually load additional languages 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.12.0/languages/javascript.min.js"></script> -->
+
+    <script>
+        button_clicked = false;
+        function generateRandomPassword() {
+            let length = 10 + Math.floor(Math.random()*40);
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += String.fromCharCode(97 + Math.floor(Math.random() * 26));
+            }
+            return result;
+        }
+        function sleep(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
+        async function input() {
+            while (! button_clicked) {
+                await sleep(10);
+            }
+            const el = document.querySelector("#pw");
+            const val = el.value;
+            el.value = "";
+            button_clicked = false;
+            return val; 
+        }
+        function err(message) {
+            let el;
+            try {
+                el = document.querySelector("ErrorMessage");
+            } catch {
+                el = document.createElement("div");
+                el.id = "ErrorMessage";
+                el.style.zIndex = 5;
+                el.style.width = "100vh";
+                el.style.height = "100vh";
+                el.style.position = "fixed";
+                el.style.top = 0;
+                el.style.left = 0;
+                el.style.right = 0;
+                el.style.left = 0;
+                el.onclick = el.remove;
+                el.style.backgroundColor = "pink";
+                el.style.fontSize = "10px";
+                document.querySelector("body").appendChild(el);
+            }
+            el.innerText = message;
+        }
+        async function show(d, selector="#ran_code > code") {
+            document.querySelector(selector).innerHTML = d;
+            console.log(d);
+        }
+        (async() => {
+            const cont = await fetch('./app.js').then(d => d.text(), d => "").catch(d => "");
+            document.querySelector("#basic_code > code").innerHTML = cont.replace("await ","");
+            const runnable = `(async()=>{while (true) {try{${cont}} catch (a) {err(a)}}})()`;
+            try {
+                eval(runnable);
+            } catch (a) {
+                err(a);
+            }
+        })()
+    </script>
+</body>
+</html>
