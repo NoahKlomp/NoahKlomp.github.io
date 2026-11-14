@@ -7,6 +7,7 @@
     <style>
         :root {
             --nr: 10;
+            --size:calc(min(95vh,47vw) / var(--nr));
         }
         body {
             font-family: sans-serif;
@@ -19,23 +20,24 @@
             box-sizing: border-box;
             min-width: 32rem;
             min-height: 70vh;
-            height: calc(min(95vh,47vw) / var(--nr));
-            max-height: calc(min(95vh,47vw) / var(--nr));
-            width: calc(min(95vh,47vw) / var(--nr));
-            max-width: calc(min(95vh,47vw) / var(--nr));
+            height: var(--size);
+            max-height: var(--size);
+            width: var(--size);
+            max-width: var(--size);
             padding: 0.75rem;
             border: 1px solid #888;
             font-family: monospace;
-            white-space: pre;
+            white-space: normal;
+            tab-size: 20px;
         }
         #runStatus {
             white-space: pre-wrap;
         }
-        #outp td {
-            height: calc(min(95vh,47vw) / var(--nr));
-            max-height: calc(min(95vh,47vw) / var(--nr));
-            width: calc(min(95vh,47vw) / var(--nr));
-            max-width: calc(min(95vh,47vw) / var(--nr));
+        #outp > tr > td {
+            height: var(--size);
+            max-height: var(--size);
+            width: var(--size);
+            max-width: var(--size);
             border: 2px solid black;
         }
         table, tr, td{
@@ -55,7 +57,7 @@
             <td>
                 <div id="codeEditor" aria-label="JavaScript code editor"></div>
                 <!-- <button id="run" type="button">Run code</button> -->
-                <pre id="runStatus" role="status" aria-live="polite"></pre>
+                <pre id="runStatus" role="status" aria-live="polite" style="overflow-y: auto; height:150px;"></pre>
             </td>
         </tr>
     </table>
