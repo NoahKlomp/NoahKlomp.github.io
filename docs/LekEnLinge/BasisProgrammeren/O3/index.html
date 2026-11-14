@@ -98,26 +98,34 @@
                 // console.log(e);
             }
         }
+        const status = document.querySelector("#runStatus");
+        function output(...txt) {
+            // txt.forEach(t=>{
+            //     status.innerHTML += t;
+            // })
+            status.textContent += txt.join(" ") + "\n";
+        }
         function runCode(code) {
             document.querySelectorAll(".fishCell").forEach(e => {
                 if (e.innerHTML != "") e.innerHTML = "";
             });
             const deadline = Date.now() + 100+nr*nr*200;
-            const check = `if (Date.now() > ${deadline}) {for (let x = 0;x<nr;x++){circle(x,nr-x-1,"red");circle(x,x,"red")}; throw "tooLong"}`;
+            const check = `if (Date.now() > ${deadline}) {for (let x = 0;x<nr;x++){circle(x,nr-x-1,"red");circle(x,x,"red")}; throw "tooLong"} else `;
 
             // Injects the time check at the start of every for, while, and do loop
             const safeCode = code.replace(
-                /\b(for\s*\([^)]*\)|while\s*\([^)]*\)|do)\s*\{/g,
+                /\b(for\s*\([^)]*\)|while\s*\([^)]*\)|do)\s*/g,
                 `$1 { ${check}`
-            );
+            ) + "}";
+            console.log(safeCode);
 
-            const status = document.querySelector("#runStatus");
-            status.textContent = "Running...";
+            
+            status.textContent = "Running...\n";
             try {
                 const result = eval(`(async () => {${safeCode}})()`);
                 Promise.resolve(result).then(
-                    () => { status.textContent = "Finished."; },
-                    (error) => { status.textContent = String(error); },
+                    () => { status.textContent += "Finished.\n"; },
+                    (error) => { status.textContent += String(error) + "\n"; },
                 );
             } catch (error) {
                 status.textContent = String(error);
@@ -142,6 +150,7 @@
         document.querySelector("#reset").addEventListener("click", () => {
             window.location.reload();
         });
+        
     </script>
 </body>
 </html>
