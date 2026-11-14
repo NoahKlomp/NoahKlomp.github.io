@@ -109,14 +109,14 @@
             document.querySelectorAll(".fishCell").forEach(e => {
                 if (e.innerHTML != "") e.innerHTML = "";
             });
-            const deadline = Date.now() + 100+nr*nr*200;
+            const deadline = Date.now() + 100;
             const check = `if (Date.now() > ${deadline}) {for (let x = 0;x<nr;x++){circle(x,nr-x-1,"red");circle(x,x,"red")}; throw "tooLong"} else `;
 
             // Injects the time check at the start of every for, while, and do loop
             const safeCode = code.replace(
                 /\b(for\s*\([^)]*\)|while\s*\([^)]*\)|do)\s*/g,
-                `$1 { ${check}`
-            ) + "}";
+                `$1 ${check}`
+            );
             console.log(safeCode);
 
             
