@@ -17,8 +17,10 @@
         }
         #codeEditor {
             box-sizing: border-box;
-            min-width: 32rem;
-            min-height: 70vh;
+            height: calc(min(95vh,47vw) / var(--nr));
+            max-height: calc(min(95vh,47vw) / var(--nr));
+            width: calc(min(95vh,47vw) / var(--nr));
+            max-width: calc(min(95vh,47vw) / var(--nr));
             padding: 0.75rem;
             border: 1px solid #888;
             font-family: monospace;
