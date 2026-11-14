@@ -52,6 +52,7 @@
             let el;
             try {
                 el = document.querySelector("ErrorMessage");
+                el.innerText = message;
             } catch {
                 el = document.createElement("div");
                 el.id = "ErrorMessage";
@@ -67,8 +68,8 @@
                 el.style.backgroundColor = "pink";
                 el.style.fontSize = "10px";
                 document.querySelector("body").appendChild(el);
+                el.innerText = message;
             }
-            el.innerText = message;
         }
         async function show(d, selector="#ran_code > code") {
             document.querySelector(selector).innerHTML = d;
